@@ -28,7 +28,7 @@ Run the same command again to update. To install a specific tag or choose anothe
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
-  | SNAPPARAZZI_REF=v1.0.0 sh
+  | SNAPPARAZZI_REF=v1.1.0 sh
 
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
   | SNAPPARAZZI_BIN="$HOME/bin" sh
@@ -42,6 +42,8 @@ snapparazzi --list                  # 列出可見 window ID / list visible wind
 snapparazzi --window 12345          # 指定視窗，再詢問間隔 / choose window, prompt for interval
 snapparazzi -w 12345 -i 1.5         # 完全指定視窗與間隔 / provide window and interval
 snapparazzi -w 12345 -i 2 -o ~/Pictures/Snapparazzi
+snapparazzi -w 12345 -i 60 -f heic  # 更省空間 / use less storage
+snapparazzi -w 12345 -i 1 -m 1280   # 最長邊限制為 1280 px / limit longest edge
 snapparazzi --help
 ```
 
@@ -57,6 +59,8 @@ To capture multiple windows concurrently, start one Snapparazzi process per Term
 | `-w`, `--window <id>` | 指定 window ID；省略時互動選擇 / Choose a window ID; omit for interactive selection |
 | `-i`, `--interval <seconds>` | 最低 0.5 秒；省略時詢問，預設 2 秒 / Minimum 0.5; omit to be prompted, default 2 seconds |
 | `-o`, `--output <directory>` | Session 輸出根目錄 / Session output root |
+| `-f`, `--format <jpg\|heic\|png>` | 圖片格式，預設 `jpg` / Image format; default: `jpg` |
+| `-m`, `--max-dimension <pixels>` | 等比例縮小到最長邊限制；預設保留原尺寸 / Limit the longest edge while preserving aspect ratio; original dimensions by default |
 | `-h`, `--help` | 完整中英雙語說明 / Full bilingual help |
 | `-V`, `--version` | 顯示版本 / Show version |
 
@@ -66,6 +70,31 @@ For complete usage, exit statuses, and more examples:
 
 ```sh
 snapparazzi --help
+```
+
+## 壓縮與效能 / Compression and performance
+
+Snapparazzi 預設直接輸出完整解析度 JPG，不會先建立大型 PNG 再轉檔。若需要更小檔案，可改用 HEIC；若要無損圖片，則選 PNG。`--max-dimension` 會在截圖後使用 macOS 內建工具等比例縮小，而且不會放大較小的圖片。
+
+Snapparazzi writes full-resolution JPG files directly by default, without creating a large intermediate PNG. Choose HEIC for smaller files or PNG for lossless output. `--max-dimension` uses a built-in macOS tool after capture to resize proportionally and never upscales smaller images.
+
+以下是在一組 35 張、約 2560×1410 的 Chrome 視窗樣本上的實測。16 小時估算採每秒一張（57,600 張）；實際大小會隨畫面內容改變。
+
+The figures below were measured from 35 Chrome window samples around 2560×1410. The 16-hour estimate assumes one frame per second (57,600 images); actual sizes vary with screen content.
+
+| 設定 / Setting | 平均每張 / Average | 16 小時、每秒一張 / 16 h at 1 fps |
+|---|---:|---:|
+| PNG（無損 / lossless） | 1.30 MB | 74.9 GB |
+| JPG（預設 / default） | 404 KB | 23.3 GB |
+| HEIC | 213 KB | 12.3 GB |
+| JPG + `--max-dimension 1280` | 136 KB | 7.9 GB |
+
+每分鐘一張時，三種格式的效能負擔通常都可忽略。每秒一張時，JPG 是速度與大小最均衡的選擇；HEIC 編碼較慢，而 `--max-dimension` 會多一次縮圖處理。若優先考量空間，可使用：
+
+At one frame per minute, the performance cost of all three formats is normally negligible. At one frame per second, JPG offers the best balance of speed and size; HEIC encoding is slower, and `--max-dimension` adds a resize pass. For storage-first capture, use:
+
+```sh
+snapparazzi -w 12345 -i 1 -f jpg -m 1280
 ```
 
 ## 螢幕錄製權限 / Screen Recording permission
@@ -97,8 +126,12 @@ Every process creates a separate session:
 
 ```text
 ~/Snapparazzi/captures/YYYYMMDD-HHMMSS-PID/
-└── App_Name_YYYYMMDD-HHMMSS_000001.png
+└── App_Name_YYYYMMDD-HHMMSS_000001.jpg
 ```
+
+副檔名會依 `--format` 變成 `.jpg`、`.heic` 或 `.png`。
+
+The extension follows `--format`: `.jpg`, `.heic`, or `.png`.
 
 若視窗最小化、切換到其他 Space 或關閉，該程序會暫停產圖；同一 window ID 恢復時會繼續。App 重建視窗後通常會取得新的 ID，這時請重新啟動 Snapparazzi 並選擇新視窗。
 
