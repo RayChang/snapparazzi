@@ -190,6 +190,16 @@ assert_equal \
   "-Z|1280|/tmp/frame.jpg" \
   "$($binary --test resize-arguments 1280 /tmp/frame.jpg)"
 
+assert_equal \
+  "dimension limiting skips images already within the maximum" \
+  "SKIP" \
+  "$($binary --test resize-needed 100 50 1280)"
+
+assert_equal \
+  "dimension limiting resizes images above the maximum" \
+  "RESIZE" \
+  "$($binary --test resize-needed 2560 1410 1280)"
+
 if (( failures > 0 )); then
   print -u2 "${failures}/${checks} tests failed"
   exit 1
