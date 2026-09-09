@@ -69,7 +69,7 @@ assert_equal \
   "$([[ -x "${install_dir}/snapparazzi" ]] && print executable || print missing)"
 assert_equal \
   "installed executable reports its version" \
-  "snapparazzi 1.0.0" \
+  "snapparazzi 1.1.0" \
   "$("${install_dir}/snapparazzi" --version)"
 assert_contains \
   "installed executable includes full help" \

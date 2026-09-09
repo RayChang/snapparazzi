@@ -56,6 +56,9 @@ assert_contains "help has a Traditional Chinese usage section" "$last_output" "�
 assert_contains "help documents window selection" "$last_output" "--window <id>"
 assert_contains "help documents interval configuration" "$last_output" "--interval <seconds>"
 assert_contains "help documents output configuration" "$last_output" "--output <directory>"
+assert_contains "help documents image formats" "$last_output" "--format <jpg|heic|png>"
+assert_contains "help documents dimension limiting" "$last_output" "--max-dimension <pixels>"
+assert_contains "help identifies JPEG as the default" "$last_output" "Default: jpg"
 assert_contains "help documents listing" "$last_output" "--list"
 assert_contains "help documents permissions bilingually" "$last_output" "螢幕錄製 / Screen Recording"
 assert_contains "help documents exit statuses" "$last_output" "結束碼 / EXIT STATUS"
@@ -67,11 +70,11 @@ assert_contains "short help prints the same usage" "$last_output" "snapparazzi [
 
 run_cli --version
 assert_equal "--version exits successfully" "0" "$last_status"
-assert_equal "version output is stable" "snapparazzi 1.0.0" "$last_output"
+assert_equal "version output is stable" "snapparazzi 1.1.0" "$last_output"
 
 run_cli -V
 assert_equal "short version exits successfully" "0" "$last_status"
-assert_equal "short version matches long version" "snapparazzi 1.0.0" "$last_output"
+assert_equal "short version matches long version" "snapparazzi 1.1.0" "$last_output"
 
 run_cli --definitely-not-an-option
 assert_equal "unknown options use the usage exit status" "2" "$last_status"
@@ -85,6 +88,23 @@ run_cli --list --interval 2
 assert_equal "list rejects capture options" "2" "$last_status"
 assert_contains "conflicts are explained" "$last_output" "--list"
 
+run_cli --format gif
+assert_equal "unsupported image formats use the usage exit status" "2" "$last_status"
+assert_contains "unsupported formats identify the bad value" "$last_output" "gif"
+
+run_cli --max-dimension 0
+assert_equal "zero maximum dimensions use the usage exit status" "2" "$last_status"
+assert_contains "invalid dimensions identify the option" "$last_output" "--max-dimension"
+assert_contains "zero dimensions identify the bad value" "$last_output" "Invalid maximum dimension: 0"
+
+run_cli --max-dimension 1280.5
+assert_equal "fractional maximum dimensions are rejected" "2" "$last_status"
+assert_contains "fractional dimensions identify the bad value" "$last_output" "Invalid maximum dimension: 1280.5"
+
+run_cli --list --format jpg
+assert_equal "list rejects image format options" "2" "$last_status"
+assert_contains "list and format conflicts are explained" "$last_output" "--list cannot be combined"
+
 assert_equal \
   "unsafe filename characters are replaced" \
   "Foo_Bar_ Demo_App" \
@@ -96,9 +116,14 @@ assert_equal \
   "$($binary --test sanitize $'\n\t')"
 
 assert_equal \
-  "filename contains app, session timestamp, and padded sequence" \
+  "PNG filename contains app, session timestamp, and padded sequence" \
   "Google Chrome_20260909-153012_000007.png" \
-  "$($binary --test filename "Google Chrome" "20260909-153012" "7")"
+  "$($binary --test filename "Google Chrome" "20260909-153012" "7" "png")"
+
+assert_equal \
+  "compressed filename uses the selected extension" \
+  "Google Chrome_20260909-153012_000007.jpg" \
+  "$($binary --test filename "Google Chrome" "20260909-153012" "7" "jpg")"
 
 assert_equal \
   "empty interval uses the two-second default" \
@@ -137,13 +162,33 @@ assert_equal \
 
 assert_equal \
   "automation options parse into one capture configuration" \
-  "mode=capture;window=42;interval=1.25;output=/tmp/caps" \
-  "$($binary --test arguments --window 42 --interval 1.25 --output /tmp/caps)"
+  "mode=capture;window=42;interval=1.25;output=/tmp/caps;format=heic;maxDimension=1280" \
+  "$($binary --test arguments --window 42 --interval 1.25 --output /tmp/caps --format heic --max-dimension 1280)"
 
 assert_equal \
   "list mode parses independently" \
-  "mode=list;window=nil;interval=nil;output=default" \
+  "mode=list;window=nil;interval=nil;output=default;format=jpg;maxDimension=nil" \
   "$($binary --test arguments --list)"
+
+assert_equal \
+  "JPEG is the default capture format" \
+  "mode=capture;window=nil;interval=nil;output=default;format=jpg;maxDimension=nil" \
+  "$($binary --test arguments)"
+
+assert_equal \
+  "jpeg alias normalizes to jpg" \
+  "mode=capture;window=nil;interval=nil;output=default;format=jpg;maxDimension=nil" \
+  "$($binary --test arguments --format jpeg)"
+
+assert_equal \
+  "capture arguments encode directly to the selected format" \
+  "-x|-o|-theic|-l42|/tmp/frame.heic" \
+  "$($binary --test capture-arguments 42 heic /tmp/frame.heic)"
+
+assert_equal \
+  "resize arguments preserve aspect ratio within a maximum dimension" \
+  "-Z|1280|/tmp/frame.jpg" \
+  "$($binary --test resize-arguments 1280 /tmp/frame.jpg)"
 
 if (( failures > 0 )); then
   print -u2 "${failures}/${checks} tests failed"
