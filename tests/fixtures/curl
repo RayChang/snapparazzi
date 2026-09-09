@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -eu
+
+: "${SNAPPARAZZI_TEST_SOURCE:?}"
+: "${SNAPPARAZZI_TEST_CURL_LOG:?}"
+
+output=""
+url=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o)
+      shift
+      output="${1:-}"
+      ;;
+    -*) ;;
+    *) url="$1" ;;
+  esac
+  shift
+done
+
+[ -n "$output" ] || exit 64
+[ -n "$url" ] || exit 64
+
+printf '%s\n' "$url" > "$SNAPPARAZZI_TEST_CURL_LOG"
+cp "$SNAPPARAZZI_TEST_SOURCE" "$output"
