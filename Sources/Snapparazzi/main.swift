@@ -3,9 +3,28 @@ import CoreGraphics
 import Dispatch
 import Darwin
 
-private let snapparazziVersion = "1.0.0"
+private let snapparazziVersion = "1.1.0"
 private let defaultInterval = 2.0
 private let minimumInterval = 0.5
+
+private enum CaptureFormat: String {
+    case jpg
+    case heic
+    case png
+
+    static func parse(_ value: String) -> CaptureFormat? {
+        switch value.lowercased() {
+        case "jpg", "jpeg":
+            return .jpg
+        case "heic":
+            return .heic
+        case "png":
+            return .png
+        default:
+            return nil
+        }
+    }
+}
 
 private let helpText = """
 Snapparazzi — a polite paparazzo for your macOS windows.
@@ -15,6 +34,7 @@ Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。
   snapparazzi [options]
   snapparazzi --list
   snapparazzi --window <id> [--interval <seconds>] [--output <directory>]
+               [--format <jpg|heic|png>] [--max-dimension <pixels>]
 
 選項 / OPTIONS
   -l, --list                 列出目前可截取的視窗與 ID 後退出。
@@ -26,6 +46,14 @@ Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。
                              Snapparazzi prompts interactively with a 2-second default.
   -o, --output <directory>   Session 輸出根目錄。
                              Session output root. Default: ~/Snapparazzi/captures
+  -f, --format <jpg|heic|png>
+                             圖片格式；jpg 體積較小、heic 最省空間、png 無損。
+                             Image format: compact jpg, smaller heic, or lossless png.
+                             Default: jpg
+  -m, --max-dimension <pixels>
+                             等比例縮小，讓最長邊不超過指定像素；不會放大圖片。
+                             Fit the longest edge within this size without upscaling.
+                             By default, the original dimensions are preserved.
   -h, --help                 顯示這份完整說明並退出。
                              Show this full help and exit.
   -V, --version              顯示版本並退出。
@@ -47,18 +75,20 @@ Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。
 
 輸出 / OUTPUT
   每次執行會建立：<output>/YYYYMMDD-HHMMSS-<PID>/
-  檔名格式：<app_name>_<YYYYMMDD-HHMMSS>_<sequence>.png
-  只有成功寫入的 PNG 才會遞增六位數流水號。
+  檔名格式：<app_name>_<YYYYMMDD-HHMMSS>_<sequence>.<format>
+  只有成功寫入的圖片才會遞增六位數流水號。
 
   Each run creates: <output>/YYYYMMDD-HHMMSS-<PID>/
-  Files use: <app_name>_<YYYYMMDD-HHMMSS>_<sequence>.png
-  The six-digit sequence advances only after a PNG is written successfully.
+  Files use: <app_name>_<YYYYMMDD-HHMMSS>_<sequence>.<format>
+  The six-digit sequence advances only after an image is written successfully.
 
 範例 / EXAMPLES
   snapparazzi
   snapparazzi --list
   snapparazzi --window 12345 --interval 1.5
   snapparazzi -w 12345 -i 2 -o ~/Pictures/Snapparazzi
+  snapparazzi -w 12345 -i 60 -f heic
+  snapparazzi -w 12345 -i 1 -f jpg -m 1280
 
   若要同時截取多個視窗，請在 multiple Terminal tabs/windows 中各啟動一個程序；
   每個程序可使用不同間隔與輸出根目錄。
@@ -85,6 +115,8 @@ private struct CLIOptions {
     var windowID: CGWindowID?
     var interval: Double?
     var outputPath: String?
+    var format: CaptureFormat = .jpg
+    var maxDimension: Int?
 }
 
 private enum CLIAction {
@@ -198,6 +230,8 @@ private func parseArguments(_ arguments: [String]) throws -> CLIAction {
     var sawWindow = false
     var sawInterval = false
     var sawOutput = false
+    var sawFormat = false
+    var sawMaxDimension = false
     var index = 0
 
     func requiredValue(after option: String) throws -> String {
@@ -262,14 +296,44 @@ private func parseArguments(_ arguments: [String]) throws -> CLIAction {
             options.outputPath = rawValue
             index += 1
 
+        case "-f", "--format":
+            guard !sawFormat else {
+                throw CLIUsageError(message: "選項重複 / Duplicate option: --format")
+            }
+            let rawValue = try requiredValue(after: argument)
+            guard let format = CaptureFormat.parse(rawValue) else {
+                throw CLIUsageError(
+                    message: "不支援的圖片格式 / Unsupported image format: \(rawValue)（choose jpg, heic, or png）"
+                )
+            }
+            sawFormat = true
+            options.format = format
+            index += 1
+
+        case "-m", "--max-dimension":
+            guard !sawMaxDimension else {
+                throw CLIUsageError(message: "選項重複 / Duplicate option: --max-dimension")
+            }
+            let rawValue = try requiredValue(after: argument)
+            guard let maxDimension = Int(rawValue), maxDimension > 0 else {
+                throw CLIUsageError(
+                    message: "無效最大尺寸 / Invalid maximum dimension: \(rawValue)（--max-dimension must be a positive integer）"
+                )
+            }
+            sawMaxDimension = true
+            options.maxDimension = maxDimension
+            index += 1
+
         default:
             throw CLIUsageError(message: "未知選項 / Unknown option: \(argument)")
         }
         index += 1
     }
 
-    if sawList, sawWindow || sawInterval || sawOutput {
-        throw CLIUsageError(message: "--list 不可與 --window、--interval 或 --output 同時使用 / --list cannot be combined with capture options")
+    if sawList, sawWindow || sawInterval || sawOutput || sawFormat || sawMaxDimension {
+        throw CLIUsageError(
+            message: "--list 不可與截圖選項同時使用 / --list cannot be combined with --window, --interval, --output, --format, or --max-dimension"
+        )
     }
 
     return .run(options)
@@ -296,8 +360,25 @@ private func sanitizedFileComponent(_ value: String) -> String {
     return result
 }
 
-private func screenshotFilename(appName: String, timestamp: String, sequence: Int) -> String {
-    "\(sanitizedFileComponent(appName))_\(timestamp)_\(String(format: "%06d", sequence)).png"
+private func screenshotFilename(
+    appName: String,
+    timestamp: String,
+    sequence: Int,
+    format: CaptureFormat
+) -> String {
+    "\(sanitizedFileComponent(appName))_\(timestamp)_\(String(format: "%06d", sequence)).\(format.rawValue)"
+}
+
+private func screenshotArguments(
+    windowID: CGWindowID,
+    format: CaptureFormat,
+    destination: URL
+) -> [String] {
+    ["-x", "-o", "-t\(format.rawValue)", "-l\(windowID)", destination.path]
+}
+
+private func resizeArguments(maxDimension: Int, destination: URL) -> [String] {
+    ["-Z", String(maxDimension), destination.path]
 }
 
 private func parsedSelection(_ input: String, itemCount: Int) -> Int? {
@@ -328,7 +409,8 @@ private func testArgumentDescription(_ action: CLIAction) -> String {
         let window = options.windowID.map(String.init) ?? "nil"
         let interval = options.interval.map(stableNumber) ?? "nil"
         let output = options.outputPath ?? "default"
-        return "mode=\(options.mode.rawValue);window=\(window);interval=\(interval);output=\(output)"
+        let maxDimension = options.maxDimension.map(String.init) ?? "nil"
+        return "mode=\(options.mode.rawValue);window=\(window);interval=\(interval);output=\(output);format=\(options.format.rawValue);maxDimension=\(maxDimension)"
     }
 }
 
@@ -343,8 +425,15 @@ private func runTestCommand(arguments: [String]) -> Never {
         guard arguments.count == 4 else { exit(2) }
         print(sanitizedFileComponent(arguments[3]))
     case "filename":
-        guard arguments.count == 6, let sequence = Int(arguments[5]) else { exit(2) }
-        print(screenshotFilename(appName: arguments[3], timestamp: arguments[4], sequence: sequence))
+        guard arguments.count == 7,
+              let sequence = Int(arguments[5]),
+              let format = CaptureFormat.parse(arguments[6]) else { exit(2) }
+        print(screenshotFilename(
+            appName: arguments[3],
+            timestamp: arguments[4],
+            sequence: sequence,
+            format: format
+        ))
     case "interval":
         guard arguments.count == 4 else { exit(2) }
         print(parsedInterval(arguments[3]).map(stableNumber) ?? "INVALID")
@@ -366,6 +455,25 @@ private func runTestCommand(arguments: [String]) -> Never {
         } catch {
             exit(2)
         }
+    case "capture-arguments":
+        guard arguments.count == 6,
+              let windowID = parseWindowID(arguments[3]),
+              let format = CaptureFormat.parse(arguments[4]) else { exit(2) }
+        let destination = URL(fileURLWithPath: arguments[5])
+        print(screenshotArguments(
+            windowID: windowID,
+            format: format,
+            destination: destination
+        ).joined(separator: "|"))
+    case "resize-arguments":
+        guard arguments.count == 5,
+              let maxDimension = Int(arguments[3]),
+              maxDimension > 0 else { exit(2) }
+        let destination = URL(fileURLWithPath: arguments[4])
+        print(resizeArguments(
+            maxDimension: maxDimension,
+            destination: destination
+        ).joined(separator: "|"))
     default:
         fputs("Unknown test command\n", stderr)
         exit(2)
@@ -521,16 +629,22 @@ private func ensureScreenCapturePermission() -> Bool {
     return false
 }
 
-private func captureWindow(
-    _ target: WindowTarget,
-    destination: URL,
+private func runTool(
+    executablePath: String,
+    arguments: [String],
+    discardStandardOutput: Bool = false,
     stopController: StopController
 ) -> CaptureResult {
+    guard !stopController.shouldStop else { return .cancelled }
+
     let process = Process()
     let errorPipe = Pipe()
-    process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-    process.arguments = ["-x", "-o", "-l\(target.id)", destination.path]
+    process.executableURL = URL(fileURLWithPath: executablePath)
+    process.arguments = arguments
     process.standardError = errorPipe
+    if discardStandardOutput {
+        process.standardOutput = FileHandle.nullDevice
+    }
 
     do {
         try process.run()
@@ -538,12 +652,10 @@ private func captureWindow(
         process.waitUntilExit()
         stopController.unregister(process)
     } catch {
-        try? FileManager.default.removeItem(at: destination)
         return .failure(error.localizedDescription)
     }
 
     if stopController.shouldStop {
-        try? FileManager.default.removeItem(at: destination)
         return .cancelled
     }
 
@@ -551,16 +663,62 @@ private func captureWindow(
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
         let message = String(data: errorData, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        try? FileManager.default.removeItem(at: destination)
         if let message, !message.isEmpty { return .failure(message) }
-        return .failure("screencapture exit status \(process.terminationStatus)")
+        let toolName = URL(fileURLWithPath: executablePath).lastPathComponent
+        return .failure("\(toolName) exit status \(process.terminationStatus)")
+    }
+
+    return .success
+}
+
+private func captureWindow(
+    _ target: WindowTarget,
+    destination: URL,
+    format: CaptureFormat,
+    maxDimension: Int?,
+    stopController: StopController
+) -> CaptureResult {
+    let captureResult = runTool(
+        executablePath: "/usr/sbin/screencapture",
+        arguments: screenshotArguments(
+            windowID: target.id,
+            format: format,
+            destination: destination
+        ),
+        stopController: stopController
+    )
+    switch captureResult {
+    case .success:
+        break
+    case .failure, .cancelled:
+        try? FileManager.default.removeItem(at: destination)
+        return captureResult
+    }
+
+    if let maxDimension {
+        let resizeResult = runTool(
+            executablePath: "/usr/bin/sips",
+            arguments: resizeArguments(
+                maxDimension: maxDimension,
+                destination: destination
+            ),
+            discardStandardOutput: true,
+            stopController: stopController
+        )
+        switch resizeResult {
+        case .success:
+            break
+        case .failure, .cancelled:
+            try? FileManager.default.removeItem(at: destination)
+            return resizeResult
+        }
     }
 
     guard let attributes = try? FileManager.default.attributesOfItem(atPath: destination.path),
           let size = attributes[.size] as? NSNumber,
           size.intValue > 0 else {
         try? FileManager.default.removeItem(at: destination)
-        return .failure("沒有產生有效 PNG / No valid PNG was produced")
+        return .failure("沒有產生有效圖片 / No valid image was produced")
     }
     return .success
 }
@@ -619,6 +777,8 @@ private func runCapture(options: CLIOptions, windows: [WindowTarget]) -> Int32 {
 
     已選擇 / selected: \(target.ownerName) — \(target.displayTitle) (ID: \(target.id))
     間隔 / interval: \(stableNumber(interval)) seconds
+    格式 / format: \(options.format.rawValue)
+    最大尺寸 / max dimension: \(options.maxDimension.map(String.init) ?? "original")
     輸出 / output: \(directory.path)
     按 Ctrl-C 停止 / Press Ctrl-C to stop.
     """)
@@ -644,9 +804,20 @@ private func runCapture(options: CLIOptions, windows: [WindowTarget]) -> Int32 {
                 wasUnavailable = false
             }
 
-            let filename = screenshotFilename(appName: target.ownerName, timestamp: timestamp, sequence: sequence)
+            let filename = screenshotFilename(
+                appName: target.ownerName,
+                timestamp: timestamp,
+                sequence: sequence,
+                format: options.format
+            )
             let destination = directory.appendingPathComponent(filename)
-            switch captureWindow(target, destination: destination, stopController: stopController) {
+            switch captureWindow(
+                target,
+                destination: destination,
+                format: options.format,
+                maxDimension: options.maxDimension,
+                stopController: stopController
+            ) {
             case .success:
                 stats.succeeded += 1
                 sequence += 1
