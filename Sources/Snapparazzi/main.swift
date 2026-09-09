@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import ImageIO
 import Dispatch
 import Darwin
 
@@ -381,6 +382,21 @@ private func resizeArguments(maxDimension: Int, destination: URL) -> [String] {
     ["-Z", String(maxDimension), destination.path]
 }
 
+private func dimensionsNeedResize(width: Int, height: Int, maxDimension: Int) -> Bool {
+    max(width, height) > maxDimension
+}
+
+private func imageDimensions(at url: URL) -> (width: Int, height: Int)? {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+          let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+            as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
+          let height = properties[kCGImagePropertyPixelHeight] as? NSNumber else {
+        return nil
+    }
+    return (width.intValue, height.intValue)
+}
+
 private func parsedSelection(_ input: String, itemCount: Int) -> Int? {
     let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.contains(","),
@@ -474,6 +490,16 @@ private func runTestCommand(arguments: [String]) -> Never {
             maxDimension: maxDimension,
             destination: destination
         ).joined(separator: "|"))
+    case "resize-needed":
+        guard arguments.count == 6,
+              let width = Int(arguments[3]), width > 0,
+              let height = Int(arguments[4]), height > 0,
+              let maxDimension = Int(arguments[5]), maxDimension > 0 else { exit(2) }
+        print(dimensionsNeedResize(
+            width: width,
+            height: height,
+            maxDimension: maxDimension
+        ) ? "RESIZE" : "SKIP")
     default:
         fputs("Unknown test command\n", stderr)
         exit(2)
@@ -696,21 +722,31 @@ private func captureWindow(
     }
 
     if let maxDimension {
-        let resizeResult = runTool(
-            executablePath: "/usr/bin/sips",
-            arguments: resizeArguments(
-                maxDimension: maxDimension,
-                destination: destination
-            ),
-            discardStandardOutput: true,
-            stopController: stopController
-        )
-        switch resizeResult {
-        case .success:
-            break
-        case .failure, .cancelled:
+        guard let dimensions = imageDimensions(at: destination) else {
             try? FileManager.default.removeItem(at: destination)
-            return resizeResult
+            return .failure("無法讀取圖片尺寸 / Cannot read image dimensions")
+        }
+        if dimensionsNeedResize(
+            width: dimensions.width,
+            height: dimensions.height,
+            maxDimension: maxDimension
+        ) {
+            let resizeResult = runTool(
+                executablePath: "/usr/bin/sips",
+                arguments: resizeArguments(
+                    maxDimension: maxDimension,
+                    destination: destination
+                ),
+                discardStandardOutput: true,
+                stopController: stopController
+            )
+            switch resizeResult {
+            case .success:
+                break
+            case .failure, .cancelled:
+                try? FileManager.default.removeItem(at: destination)
+                return resizeResult
+            }
         }
     }
 
