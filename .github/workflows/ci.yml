@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Verify shell syntax
+        run: |
+          /bin/sh -n install.sh
+          /bin/zsh -n tests/run-tests.sh
+          /bin/zsh -n tests/install-tests.sh
+          /bin/sh -n tests/fixtures/curl
+
+      - name: Build and test
+        run: make test

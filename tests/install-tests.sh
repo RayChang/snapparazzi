@@ -46,7 +46,7 @@ test_root="$(mktemp -d)"
 trap 'rm -rf "$test_root"' EXIT
 install_dir="${test_root}/bin"
 curl_log="${test_root}/curl-url"
-fixture_path="${project_dir}/tests/fixtures:/usr/bin:/bin:/usr/sbin:/sbin"
+fixture_path="${project_dir}/tests/fixtures:${install_dir}:/usr/bin:/bin:/usr/sbin:/sbin"
 
 installer_output="$(
   PATH="$fixture_path" \
@@ -62,7 +62,7 @@ assert_equal "installer exits successfully" "0" "$installer_status"
 assert_equal \
   "installer fetches source from the requested Git ref" \
   "https://raw.githubusercontent.com/RayChang/snapparazzi/v9-test/Sources/Snapparazzi/main.swift" \
-  "$(<"$curl_log")"
+  "$(cat "$curl_log")"
 assert_equal \
   "installer creates a native executable" \
   "executable" \

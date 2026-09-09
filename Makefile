@@ -16,6 +16,7 @@ $(BINARY): $(SOURCE)
 
 test: build
 	tests/run-tests.sh
+	tests/install-tests.sh
 
 install: build
 	install -d $(DESTDIR)$(PREFIX)/bin
