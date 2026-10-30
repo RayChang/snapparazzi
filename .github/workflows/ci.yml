@@ -33,3 +33,46 @@ jobs:
 
       - name: Build and test
         run: make test
+
+  # The oldest supported system for screenshots: build there (deployment target =
+  # macOS 14, like the one-line installer on such a Mac) with a macOS 15+ SDK, run the
+  # screenshot and record-argument suites, and check that `record` itself refuses
+  # with "requires macOS 15" instead of crashing.
+  macos14:
+    runs-on: macos-14
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Select an Xcode with a macOS 15+ SDK
+        run: |
+          xcode="$(ls -d /Applications/Xcode_1[6-9]*.app /Applications/Xcode_2*.app 2>/dev/null | sort -V | tail -1)"
+          [ -n "$xcode" ] || { echo "no Xcode 16 or newer on this runner"; ls -d /Applications/Xcode*.app; exit 1; }
+          sudo xcode-select -s "$xcode"
+          sw_vers
+          xcrun --show-sdk-version
+          xcrun swiftc --version
+
+      - name: Build for this macOS version
+        run: |
+          sw_vers -productVersion | grep -q '^14\.' || { echo "expected macOS 14"; exit 1; }
+          make build
+          otool -l .build/snapparazzi | grep -A4 LC_BUILD_VERSION | grep -E 'minos|sdk'
+          .build/snapparazzi --version
+
+      - name: Screenshot and record-argument suites
+        run: |
+          tests/run-tests.sh
+          tests/record-cli-tests.sh
+
+      - name: record refuses on macOS 14
+        run: |
+          set +e
+          .build/snapparazzi record -w 1 --duration 1 -o "$RUNNER_TEMP/clip.mp4" > "$RUNNER_TEMP/record.out" 2>&1
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/record.out"
+          [ "$code" -eq 1 ] || { echo "expected exit 1, got $code"; exit 1; }
+          grep -q 'record requires macOS 15 or later' "$RUNNER_TEMP/record.out"
+          [ ! -e "$RUNNER_TEMP/clip.mp4" ]
+          echo "record on $(sw_vers -productVersion): exit 1 with the macOS 15 message, no file"
