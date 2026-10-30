@@ -98,6 +98,8 @@ snapparazzi record --help
 
 **both.** App 聲音與麥克風先錄成兩條音軌，停止後再離線混成一條音軌（各 0.5 增益），影片不重新編碼。代價是停止後還要幾秒收尾、暫時需要約兩倍空間，且音訊多經過一次 AAC 編碼。外放聲音會被麥克風再錄一次，建議戴耳機。`both` records two tracks, then mixes them into one after you stop (0.5 gain each) without re-encoding video. It takes a few extra seconds and about twice the space while finishing, and the audio is AAC-encoded twice. Use headphones to avoid echo.
 
+**實測 / Measured.** 在 Apple silicon、macOS 26.5 錄 1280×864、30 fps、H.264、`--audio both` 一小時：檔案約 123 MiB，停止後收尾與混音約 24 秒，錄影期間暫存加成品最多約 257 MiB，CPU 平均約 17%，記憶體約 55 MiB 且不隨時間增加。檔案大小會隨畫面內容與尺寸改變。One hour of 1280×864, 30 fps, H.264 with `--audio both` on Apple silicon: about 123 MiB, ~24 s to finish and mix after stopping, ~257 MiB peak temporary disk, ~17% CPU and ~55 MiB of memory that does not grow. Sizes vary with content and window size.
+
 **權限 / Permissions.** 需要「螢幕與系統錄音」；`mic`、`both` 另需「麥克風」。macOS 通常把權限記在你用的 Terminal App 名下，而不是 snapparazzi 本身；換一個 Terminal 可能要重新允許。Requires Screen & System Audio Recording, plus Microphone for `mic`/`both`. macOS usually grants these to your terminal app, not to snapparazzi itself.
 
 **視窗狀態 / Window state.** 視窗最小化超過 1 秒時改錄黑畫面，還原後繼續；切換到其他桌面時照常錄製。視窗被關閉或 App 結束時，錄影停止、保留已錄內容並以結束碼 1 結束。調整視窗大小時影片尺寸不變，內容等比例縮放並貼齊左上角。Minimized windows record black after 1 second and resume on restore; other Spaces keep recording. Closing the window or quitting the app stops, keeps the recording and exits 1. Resizing keeps the video size; content is scaled to fit, anchored top-left.
