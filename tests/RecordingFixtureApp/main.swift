@@ -9,7 +9,8 @@ import CoreAudio
 //   --markers          every 2 s flashes white for 100 ms and beeps 1 kHz for 50 ms
 //                      at the same moment (audio/video sync markers), starting at 1 s
 //   --script ACTIONS   comma-separated NAME@SECONDS, e.g. minimize@3,restore@6,
-//                      resize@8:420x620,close@11,quit@12 (close destroys the window)
+//                      resize@8:420x620,fullscreen@9,close@11,quit@12 (fullscreen toggles
+//                      macOS full screen; close destroys the window)
 //   --quit-after S     terminate after S seconds (default 600)
 //   --output-device UID  play through this CoreAudio device instead of the default output
 
@@ -31,6 +32,7 @@ final class Fixture: NSObject, NSApplicationDelegate, @unchecked Sendable {
         window.title = arguments["--title"] ?? "Snapparazzi Fixture"
         window.contentView = view
         window.isReleasedWhenClosed = false
+        window.collectionBehavior.insert(.fullScreenPrimary)
         window.makeKeyAndOrderFront(nil)
         self.window = window
         NSApp.activate(ignoringOtherApps: true)
@@ -75,6 +77,7 @@ final class Fixture: NSObject, NSApplicationDelegate, @unchecked Sendable {
             window?.contentView = nil
             window = nil
         case "quit": NSApp.terminate(nil)
+        case "fullscreen": window?.toggleFullScreen(nil)
         case "resize":
             let size = (detail ?? "400x600").split(separator: "x").compactMap { Double($0) }
             if size.count == 2 { window?.setContentSize(NSSize(width: size[0], height: size[1])) }

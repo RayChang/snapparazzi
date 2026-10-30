@@ -146,6 +146,17 @@ check "resize: exit 0" "$(( rec_status == 0 ))"
 inspect_file resize
 check "resize: 180 frames, fixed size" "$(json "$work/resize.json" "int(abs(r['video'][0]['samples']-180)<=3)")"
 
+# 4b. macOS full screen (the same window moves to its own Space and grows): keeps
+#     recording real frames, no black, sync markers still within 100 ms.
+start_fixture --markers --tone 440 --script fullscreen@3,fullscreen@9 --quit-after 60
+record fullscreen --audio system --duration 14
+check "full screen: exit 0" "$(( rec_status == 0 ))"
+check "full screen: no black frames" "$(print -r -- "$rec_output" | grep -q '黑畫面 / black 0' && print 1 || print 0)"
+inspect_file fullscreen --sync
+check "full screen: constant frame rate (about 420 frames)" "$(json "$work/fullscreen.json" "int(abs(r['video'][0]['samples']-420)<=4)")"
+check "full screen: markers seen while in full screen, within 100 ms" \
+  "$(json "$work/fullscreen.json" "int(sum(1 for p in r['sync']['pairs'] if 3.5 < p['video'] < 8.5) >= 2 and r['sync']['max_abs_offset'] < 0.1)")"
+
 # 5. The window disappearing (here: its app quits) stops the recording, keeps it, exits 1.
 #    (A window an app merely hides on close stays alive and records black, like minimize;
 #    Finder's ⌘W destroying a window gave the same -3815 error in the Task 0 probe.)

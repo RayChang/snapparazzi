@@ -121,6 +121,7 @@
 | App範圍 | fixture 440 Hz 錄到0.099；同時另一程序`afplay`的880 Hz為0.0000 |
 | 最小化2→5秒 | 固定240幀；最小化期間亮度0（黑），前後為畫面 |
 | 改大小兩次 | 180幀、尺寸不變、無錯誤 |
+| macOS 全螢幕（第3秒進入、第9秒離開） | 同一視窗移到全螢幕 Space，持續錄到真實畫面（0黑畫面、約420幀）、全螢幕期間的同步標記仍<100 ms；內容等比例縮入原畫布 |
 | App結束 | exit 1、「window closed」、保留可播放的約2秒檔 |
 | SIGINT／SIGTERM | exit 0、檔長3–4秒 |
 | both混音時第二次SIGINT | exit 1、不產生MP4、保留雙音軌MOV並說明 |
@@ -176,3 +177,4 @@
 - 以 macOS 14 SDK（Xcode 15／對應 CLT）編譯：錄影用到 macOS 15 SDK 才有的 ScreenCaptureKit 麥克風 API，舊 SDK 無法編譯；README 已寫明需要 macOS 15 以上 SDK。
 - DRM／受保護內容可能錄不到聲音或畫面：規格要求「如實列出」，已寫入 README 與 `record --help`，沒有可合法取得的受保護測試素材。
 - 多程序 App：Task 0 以 Chrome（多程序瀏覽器）驗證了 App 範圍與同 App 其他視窗會錄入；其他多程序 App 依同一機制，未逐一測試。
+- 網頁影片的全螢幕：若瀏覽器以另一個視窗播放全螢幕影片，錄影仍綁定原本的 window ID（錄到原視窗，被藏起時為黑畫面）；App 視窗本身進入 macOS 全螢幕已驗證會持續錄製。
