@@ -5,14 +5,14 @@
 #
 # Environment overrides:
 #   SNAPPARAZZI_BIN=<dir>  install location (default: $HOME/.local/bin)
-#   SNAPPARAZZI_REF=<ref>  git branch or tag to install (default: main)
+#   SNAPPARAZZI_REF=<ref>  git branch, tag, or commit to install (default: main)
 
 set -eu
 
 REPO="RayChang/snapparazzi"
 REF="${SNAPPARAZZI_REF:-main}"
 BIN_DIR="${SNAPPARAZZI_BIN:-$HOME/.local/bin}"
-RAW="https://raw.githubusercontent.com/$REPO/$REF"
+ARCHIVE_URL="https://codeload.github.com/$REPO/tar.gz/$REF"
 tmp_dir=""
 staged_binary=""
 
@@ -38,47 +38,53 @@ cleanup() {
   fi
 }
 
+# Branch, tag, or SHA characters only; it becomes part of the download URL.
+valid_ref() {
+  case "$1" in
+    "" | -* | /* | */ | *//* | *..*) return 1 ;;
+    *[!A-Za-z0-9._/-]*) return 1 ;;
+  esac
+  return 0
+}
+
 trap cleanup EXIT HUP INT TERM
 
 [ "$(uname -s)" = "Darwin" ] || fail "Snapparazzi requires macOS / Snapparazzi 僅支援 macOS"
+valid_ref "$REF" || fail "invalid SNAPPARAZZI_REF: $REF / SNAPPARAZZI_REF 格式無效"
 have curl || fail "curl is required / 需要 curl"
+have tar || fail "tar is required / 需要 tar"
+have make || fail "make is required. Run 'xcode-select --install' first. / 需要 make，請先執行 'xcode-select --install'。"
 have install || fail "install is required / 需要 install"
 
-use_xcrun=0
-swiftc_path=""
 if have xcrun && xcrun -f swiftc >/dev/null 2>&1; then
-  use_xcrun=1
+  swift_compiler="xcrun -sdk macosx swiftc"
 elif have swiftc; then
-  swiftc_path="$(command -v swiftc)"
+  swift_compiler="$(command -v swiftc)"
 else
   fail "Swift compiler not found. Run 'xcode-select --install' first. / 找不到 Swift compiler，請先執行 'xcode-select --install'。"
 fi
 
-compile() {
-  if [ "$use_xcrun" -eq 1 ]; then
-    xcrun -sdk macosx swiftc "$@"
-  else
-    "$swiftc_path" "$@"
-  fi
-}
-
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/snapparazzi.XXXXXX")" || fail "cannot create temporary directory"
-source_file="$tmp_dir/main.swift"
-built_binary="$tmp_dir/snapparazzi"
+archive="$tmp_dir/source.tar.gz"
+source_dir="$tmp_dir/source"
+built_binary="$source_dir/.build/snapparazzi"
 
 say "Downloading Snapparazzi source ($REF)…"
-curl -fsSL "$RAW/Sources/Snapparazzi/main.swift" -o "$source_file"
-grep -q 'private let snapparazziVersion' "$source_file" || \
-  fail "downloaded file does not look like Snapparazzi (bad SNAPPARAZZI_REF?)"
+curl -fsSL "$ARCHIVE_URL" -o "$archive" || \
+  fail "cannot download $ARCHIVE_URL (bad SNAPPARAZZI_REF?) / 無法下載原始碼"
+members="$(tar -tzf "$archive")" || fail "downloaded archive is not readable / 原始碼壓縮檔無法讀取"
+if printf '%s\n' "$members" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+  fail "archive contains unsafe paths / 原始碼壓縮檔含有不安全的路徑"
+fi
+mkdir "$source_dir"
+tar -xzf "$archive" -C "$source_dir" --strip-components 1 || fail "cannot extract source archive / 無法解壓原始碼"
+[ -f "$source_dir/Makefile" ] && [ -f "$source_dir/Sources/Snapparazzi/main.swift" ] && \
+  [ -f "$source_dir/Resources/Info.plist" ] || \
+  fail "downloaded source does not look like Snapparazzi (bad SNAPPARAZZI_REF?)"
 
 say "Building native macOS executable…"
-compile \
-  -emit-executable \
-  -O \
-  -whole-module-optimization \
-  -warnings-as-errors \
-  "$source_file" \
-  -o "$built_binary"
+make -C "$source_dir" build SWIFTC="$swift_compiler" >/dev/null || \
+  fail "build failed / 編譯失敗"
 "$built_binary" --version >/dev/null
 
 mkdir -p "$BIN_DIR"

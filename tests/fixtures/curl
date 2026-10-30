@@ -1,8 +1,12 @@
 #!/bin/sh
+# Fake curl for installer tests: records the URL and serves a local source archive.
+#   SNAPPARAZZI_TEST_ARCHIVE    archive to return
+#   SNAPPARAZZI_TEST_CURL_LOG   file that receives the requested URL
+#   SNAPPARAZZI_TEST_CURL_FAIL  when set, simulate an HTTP failure (curl -f exit 22)
 
 set -eu
 
-: "${SNAPPARAZZI_TEST_SOURCE:?}"
+: "${SNAPPARAZZI_TEST_ARCHIVE:?}"
 : "${SNAPPARAZZI_TEST_CURL_LOG:?}"
 
 output=""
@@ -23,4 +27,5 @@ done
 [ -n "$url" ] || exit 64
 
 printf '%s\n' "$url" > "$SNAPPARAZZI_TEST_CURL_LOG"
-cp "$SNAPPARAZZI_TEST_SOURCE" "$output"
+[ -z "${SNAPPARAZZI_TEST_CURL_FAIL:-}" ] || exit 22
+cp "$SNAPPARAZZI_TEST_ARCHIVE" "$output"
