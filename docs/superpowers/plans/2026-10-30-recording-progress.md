@@ -49,6 +49,9 @@
 | 混音（實錄） | `both.mov`（h264）與`sigterm-hevc.mov`混成單音軌MP4，影片完全相同；音軌偏移保留（0.12／0.24秒）；system peak 0.88→混後0.44。10秒片混音約0.2秒 |
 | H.264 B-frame與MP4 | 實錄與fixture的H.264都有frame reordering。MP4不允許負的composition offset，passthrough後**整條video media time往後移2幀，再以edit list對回0**；HEVC無此現象。比對passthrough須用套用edit後的播放時間，不能直接比原始PTS |
 | 延遲音軌的offset | **在leading empty edit，不在`timeRange.start`**（延遲0.5秒的音軌timeRange.start仍是0），用`track.load(.segments)`讀 |
+| 最小化 | 按⌘M時收到1張`suspended`，之後**完全沒有screen callback**（6.6秒、9.9秒兩次皆同），無錯誤、stream持續；還原後自動恢復`complete`，尺寸不變 |
+| 切換桌面 | 切換瞬間1張`idle`，之後**持續送`complete`畫面**，抽格確認是視窗真實內容而非黑畫面（靜止視窗，無法分辨是否即時更新） |
+| 調整大小 | 畫布固定（config未更新）時，SCK自動等比例縮入畫布：窄高→597×962、寬矮→1280×402；視窗小於畫布時contentScale＝1.0，**不放大、不拉伸**；全程`complete`無中斷。**內容貼齊左上角**，右／下補黑，不置中 |
 | 工具陷阱 | `afconvert`轉出的WAV**忽略音軌前段的empty edit**（mic.mov轉出9.37秒，而非10秒），會把延遲音軌移到0；AVAssetReader則保留offset並補靜音。驗證工具只能用遵守edit list的AVFoundation |
 
 對規格／計畫的影響：
@@ -60,11 +63,13 @@
 - Task 5／README：mic（推測螢幕錄製也是）授權歸啟動終端機等負責App，不是CLI本身；文件要教使用者到對應App授權。
 - Task 7／12：mic取樣率會隨裝置改變（48k→24k），起始延遲也不固定（0.24～0.7秒）。每來源獨立converter正規化為48k stereo、以實際PTS定位而非假設固定延遲，皆有實測依據。
 - Task 13：system peak可接近滿刻度，both混音的0.5增益是必要的。
+- Task 9：resize不需更新SCStreamConfiguration或自行縮放，SCK已等比例縮入固定畫布並以contentRect回報位置；規格要求「置中」，只需依contentRect平移（不必縮放），或改規格接受左上角對齊。
+- Task 10：最小化以`suspended`狀態判斷（之後不再有callback，需由ticker補畫面）；切換桌面不是「不可見」，照常錄製。規格5.1「最小化／其他Space都改黑畫面」需修訂。
 
 接續工作：
 
 1. mic拒絕／重新允許；錄影中切換預設麥克風（應維持起始裝置）與拔除裝置；終端機前景Ctrl-C（已以`kill -INT/-TERM`驗證signal路徑）。
-2. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
+2. Retina（內建螢幕）、視窗關閉時的行為。
 3. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
 
 ## Task 1：使用者已回報的本地基準

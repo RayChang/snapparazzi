@@ -35,6 +35,10 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
     // Complete screen frames split by SCK's dirtyRects attachment: "unchanged"
     // means SCK reported no changed region, "missing" means no attachment.
     private var screenDirty: [String: Int] = [:]
+    // Timeline evidence for minimize/resize/close: status counts, state changes, delivery gaps.
+    private var screenStatus: [String: Int] = [:]
+    private var lastScreenState: String?
+    private var lastScreenPTS: CMTime?
     // Per-frame dirty area as a fraction of the canvas (rects may overlap).
     private var dirtyFractionMin = Double.infinity
     private var dirtyFractionMax = 0.0
@@ -146,7 +150,46 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
     }
 
     func stream(_ stream: SCStream, didStopWithError error: Error) {
-        queue.async { self.fail("SCStream: \(error.localizedDescription)") }
+        queue.async {
+            emit(["event": "stream_stopped_with_error", "elapsed": self.elapsedNow() as Any? ?? NSNull(),
+                  "error": error.localizedDescription, "code": (error as NSError).code])
+            self.fail("SCStream: \(error.localizedDescription)")
+        }
+    }
+
+    private func elapsedNow() -> Double? {
+        epoch.flatMap { seconds(CMTimeSubtract(CMClockGetTime(CMClockGetHostTimeClock()), $0)) }
+    }
+
+    // Emits an event only when status/geometry changes, or when screen callbacks pause >0.5 s.
+    private func recordScreenState(_ sampleBuffer: CMSampleBuffer, sourcePTS: CMTime) {
+        let info = (CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
+                    as? [[SCStreamFrameInfo: Any]])?.first
+        let status: String
+        switch (info?[.status] as? Int).flatMap(SCFrameStatus.init(rawValue:)) {
+        case .complete: status = "complete"
+        case .idle: status = "idle"
+        case .blank: status = "blank"
+        case .suspended: status = "suspended"
+        case .started: status = "started"
+        case .stopped: status = "stopped"
+        case nil: status = "missing"
+        @unknown default: status = "unknown"
+        }
+        screenStatus[status, default: 0] += 1
+        let elapsed = epoch.flatMap { seconds(CMTimeSubtract(sourcePTS, $0)) }
+        if let last = lastScreenPTS, let gap = seconds(CMTimeSubtract(sourcePTS, last)), gap > 0.5 {
+            emit(["event": "screen_gap", "seconds": gap, "resumed_at": elapsed as Any? ?? NSNull()])
+        }
+        lastScreenPTS = sourcePTS
+        let rect = (info?[.contentRect] as? NSDictionary).flatMap { CGRect(dictionaryRepresentation: $0) }
+        let rectText = rect.map { "\(Int($0.width.rounded()))x\(Int($0.height.rounded()))" } ?? "none"
+        let contentScale = (info?[.contentScale] as? Double).map { String(format: "%.4f", $0) } ?? "none"
+        let scaleFactor = (info?[.scaleFactor] as? Double).map { String(format: "%.2f", $0) } ?? "none"
+        let state = "\(status) rect=\(rectText) contentScale=\(contentScale) scaleFactor=\(scaleFactor)"
+        guard state != lastScreenState else { return }
+        lastScreenState = state
+        emit(["event": "screen_change", "elapsed": elapsed as Any? ?? NSNull(), "state": state])
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
@@ -205,6 +248,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             }
             emit(metadata)
         }
+        if outputType == .screen { recordScreenState(sampleBuffer, sourcePTS: sourcePTS) }
         if outputType == .screen {
             guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer,
                        createIfNecessary: false) as? [[SCStreamFrameInfo: Any]],
@@ -306,7 +350,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             let complete = hasVideo && writer.status == .completed && failure == nil
             emit(["event": "capture_result", "writer_completed": writer.status == .completed,
                   "success": complete, "seen": seen, "written": written, "dropped": dropped,
-                  "screen_dirty": screenDirty,
+                  "screen_dirty": screenDirty, "screen_status": screenStatus,
                   "screen_dirty_area_fraction": dirtyAreaSummary(),
                   "error": (failure ?? writer.error?.localizedDescription) as Any? ?? NSNull(),
                   "output": options.output.path,
