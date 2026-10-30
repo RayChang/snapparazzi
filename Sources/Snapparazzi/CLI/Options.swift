@@ -33,10 +33,33 @@ struct CLIOptions {
     var maxDimension: Int?
 }
 
+enum AudioMode: String {
+    case none, system, mic, both
+
+    var capturesSystem: Bool { self == .system || self == .both }
+    var capturesMicrophone: Bool { self == .mic || self == .both }
+}
+
+enum VideoCodec: String {
+    case h264, hevc
+}
+
+struct RecordingOptions {
+    var windowID: CGWindowID?
+    var audio: AudioMode = .none
+    var fps = 30
+    var codec: VideoCodec = .h264
+    var duration: Double?
+    var outputPath: String?
+    var maxDimension: Int?
+}
+
 enum CLIAction {
     case help
     case version
     case run(CLIOptions)
+    case recordingHelp
+    case record(RecordingOptions)
 }
 
 struct CLIUsageError: Error {

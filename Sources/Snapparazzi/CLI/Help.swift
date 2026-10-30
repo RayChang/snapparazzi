@@ -9,6 +9,9 @@ Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。
   snapparazzi --list
   snapparazzi --window <id> [--interval <seconds>] [--output <directory>]
                [--format <jpg|heic|png>] [--max-dimension <pixels>]
+  snapparazzi record --window <id> [options]
+               錄製視窗影片；詳見 snapparazzi record --help
+               Record a window to MP4; see snapparazzi record --help
 
 選項 / OPTIONS
   -l, --list                 列出目前可截取的視窗與 ID 後退出。
@@ -77,4 +80,68 @@ Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。
      Permission, window, directory, or capture runtime failure.
   2  無效或互相衝突的命令列參數。
      Invalid or conflicting command-line arguments.
+"""
+
+let recordingHelpText = """
+Snapparazzi record — 把一個視窗錄成 MP4。需要 macOS 15 以上。
+Snapparazzi record — record one window to an MP4 file. Requires macOS 15 or later.
+
+用法 / USAGE
+  snapparazzi record --window <id> [--audio <none|system|mic|both>] [--fps <1-60>]
+                     [--codec <h264|hevc>] [--duration <seconds>]
+                     [--output <file.mp4>] [--max-dimension <pixels>]
+
+選項 / OPTIONS
+  -w, --window <id>          必填。先用 snapparazzi --list 查 window ID。
+                             Required. Find window IDs with snapparazzi --list.
+      --audio <mode>         none（預設）、system（目標 App 的聲音）、mic（麥克風）、both（兩者混成一條音軌）。
+                             none (default), system (the target app's audio), mic, or
+                             both (mixed into one audio track).
+      --fps <1-60>           影格率，預設 30。Frame rate, default 30.
+      --codec <h264|hevc>    影片編碼，預設 h264。Video codec, default h264.
+      --duration <seconds>   錄到指定秒數後停止（0.5–86400）；未指定時按 Ctrl-C 停止。
+                             Stop after this many seconds (0.5–86400); otherwise press Ctrl-C.
+  -o, --output <file.mp4>    輸出檔案，不可已存在。
+                             Output file; must not already exist.
+                             Default: ~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-<PID>.mp4
+  -m, --max-dimension <pixels>
+                             等比例縮小，讓最長邊不超過指定像素（2–8192）；不會放大。
+                             Fit the longest edge within this size (2–8192) without upscaling.
+  -h, --help                 顯示錄影說明。Show this help.
+
+聲音範圍 / AUDIO SCOPE
+  system 只錄目標視窗所屬 App 的聲音，不是整台 Mac 的聲音；同一 App 其他視窗或分頁的
+  聲音可能一起錄入。DRM／受保護內容可能錄不到聲音。
+  system captures the target window's app only, not the whole Mac. Audio from the same
+  app's other windows or tabs may be included. Protected content may be silent.
+
+  both 會把 App 聲音與麥克風混成一條音軌；外放聲音會被麥克風再錄一次，建議戴耳機。
+  停止後還需要額外時間與暫存空間完成混音。
+  both mixes app audio and the microphone into one track. Use headphones to avoid echo.
+  Mixing needs extra time and temporary disk space after you stop.
+
+權限 / PERMISSIONS
+  需要「螢幕與系統錄音」權限；mic 與 both 另需「麥克風」權限。授權對象通常是你使用的
+  Terminal App。
+  Requires Screen & System Audio Recording permission; mic and both also need Microphone
+  permission. macOS usually grants these to your terminal app.
+
+視窗狀態 / WINDOW STATE
+  視窗最小化超過 1 秒時改錄黑畫面，還原後繼續；視窗關閉時停止並保留已錄內容（結束碼 1）。
+  Minimizing records black frames after 1 second and resumes on restore. Closing the
+  window stops recording and keeps what was recorded (exit status 1).
+
+結束碼 / EXIT STATUS
+  0  正常完成，或由 Ctrl-C／SIGTERM／--duration 停止。
+     Finished, or stopped by Ctrl-C, SIGTERM, or --duration.
+  1  權限、視窗、檔案、錄製或混音錯誤。
+     Permission, window, file, recording, or mixing failure.
+  2  無效或互相衝突的命令列參數。
+     Invalid or conflicting command-line arguments.
+
+範例 / EXAMPLES
+  snapparazzi --list
+  snapparazzi record -w 12345 --duration 10
+  snapparazzi record -w 12345 --audio system -o ~/Movies/demo.mp4
+  snapparazzi record -w 12345 --audio both --fps 30 --codec hevc --duration 3600
 """

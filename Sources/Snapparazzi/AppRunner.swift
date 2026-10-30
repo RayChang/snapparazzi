@@ -24,7 +24,7 @@ func appMain() -> Int32 {
     }
 
     do {
-        switch try parseArguments(Array(arguments.dropFirst())) {
+        switch try parseCommandLine(Array(arguments.dropFirst())) {
         case .help:
             print(helpText)
             return 0
@@ -33,6 +33,12 @@ func appMain() -> Int32 {
             return 0
         case .run(let options):
             return run(options: options)
+        case .recordingHelp:
+            print(recordingHelpText)
+            return 0
+        case .record:
+            fputs("錯誤 / Error: record 尚未實作 / record is not implemented yet.\n", stderr)
+            return 1
         }
     } catch let error as CLIUsageError {
         fputs("錯誤 / Error: \(error.message)\n", stderr)

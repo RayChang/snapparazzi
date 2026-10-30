@@ -26,6 +26,7 @@ $(BINARY): $(SOURCES) $(BUILD_INPUTS) Makefile
 
 test: build
 	tests/run-tests.sh
+	tests/record-cli-tests.sh
 	tests/install-tests.sh
 
 install: build

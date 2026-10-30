@@ -135,3 +135,113 @@ func parseArguments(_ arguments: [String]) throws -> CLIAction {
 
     return .run(options)
 }
+
+// Only the first token may name a subcommand; anything else keeps the original
+// screenshot parser, so every existing command line behaves exactly as before.
+func parseCommandLine(_ arguments: [String]) throws -> CLIAction {
+    switch arguments.first {
+    case "capture": return try parseArguments(Array(arguments.dropFirst()))
+    case "record": return try parseRecordingArguments(Array(arguments.dropFirst()))
+    default: return try parseArguments(arguments)
+    }
+}
+
+private let recordingMinimumFPS = 1
+private let recordingMaximumFPS = 60
+
+// Plain decimal seconds such as 3600, 0.5 or .5 (no exponent, hex, nan or inf).
+private func parsedRecordingDuration(_ input: String) -> Double? {
+    guard input.range(of: #"^([0-9]+(\.[0-9]*)?|\.[0-9]+)$"#, options: .regularExpression) != nil,
+          let value = Double(input), value.isFinite, (0.5...86_400).contains(value) else {
+        return nil
+    }
+    return value
+}
+
+func parseRecordingArguments(_ arguments: [String]) throws -> CLIAction {
+    var options = RecordingOptions()
+    var seen = Set<String>()
+    var index = 0
+
+    func value(for option: String) throws -> String {
+        guard !seen.contains(option) else {
+            throw CLIUsageError(message: "選項重複 / Duplicate option: \(option)")
+        }
+        seen.insert(option)
+        let valueIndex = index + 1
+        guard valueIndex < arguments.count else {
+            throw CLIUsageError(message: "選項缺少值 / Missing value for \(option)")
+        }
+        index += 1
+        return arguments[valueIndex]
+    }
+
+    while index < arguments.count {
+        let argument = arguments[index]
+        switch argument {
+        case "-h", "--help":
+            return .recordingHelp
+
+        case "-w", "--window":
+            let raw = try value(for: "--window")
+            guard let windowID = parseWindowID(raw) else {
+                throw CLIUsageError(message: "無效 window ID / Invalid window ID: \(raw)")
+            }
+            options.windowID = windowID
+
+        case "--audio":
+            let raw = try value(for: "--audio")
+            guard let audio = AudioMode(rawValue: raw) else {
+                throw CLIUsageError(message: "無效音訊模式 / Invalid audio mode: \(raw)（choose none, system, mic, or both）")
+            }
+            options.audio = audio
+
+        case "--fps":
+            let raw = try value(for: "--fps")
+            guard let fps = Int(raw), (recordingMinimumFPS...recordingMaximumFPS).contains(fps) else {
+                throw CLIUsageError(message: "無效 fps / Invalid fps: \(raw)（integer 1–60）")
+            }
+            options.fps = fps
+
+        case "--codec":
+            let raw = try value(for: "--codec")
+            guard let codec = VideoCodec(rawValue: raw) else {
+                throw CLIUsageError(message: "不支援的影片編碼 / Unsupported video codec: \(raw)（choose h264 or hevc）")
+            }
+            options.codec = codec
+
+        case "--duration":
+            let raw = try value(for: "--duration")
+            guard let duration = parsedRecordingDuration(raw) else {
+                throw CLIUsageError(message: "無效錄影長度 / Invalid duration: \(raw)（decimal seconds 0.5–86400）")
+            }
+            options.duration = duration
+
+        case "-o", "--output":
+            let raw = try value(for: "--output")
+            guard !raw.isEmpty, (raw as NSString).pathExtension.lowercased() == "mp4" else {
+                throw CLIUsageError(message: "錄影輸出必須是 .mp4 檔案 / Recording output must be a .mp4 file: \(raw)")
+            }
+            options.outputPath = raw
+
+        case "-m", "--max-dimension":
+            let raw = try value(for: "--max-dimension")
+            guard let maxDimension = Int(raw), (2...8192).contains(maxDimension) else {
+                throw CLIUsageError(message: "無效最大尺寸 / Invalid maximum dimension: \(raw)（integer 2–8192）")
+            }
+            options.maxDimension = maxDimension
+
+        case "-i", "--interval", "-f", "--format", "-l", "--list", "-V", "--version":
+            throw CLIUsageError(message: "record 不支援此選項 / Not supported by record: \(argument)")
+
+        default:
+            throw CLIUsageError(message: "未知選項 / Unknown option: \(argument)")
+        }
+        index += 1
+    }
+
+    guard options.windowID != nil else {
+        throw CLIUsageError(message: "record 需要 --window；先用 snapparazzi --list 查 ID / record requires --window; find IDs with snapparazzi --list")
+    }
+    return .record(options)
+}

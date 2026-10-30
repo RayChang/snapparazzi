@@ -18,6 +18,7 @@ jobs:
         run: |
           /bin/sh -n install.sh
           /bin/zsh -n tests/run-tests.sh
+          /bin/zsh -n tests/record-cli-tests.sh
           /bin/zsh -n tests/install-tests.sh
           /bin/sh -n tests/fixtures/curl
 

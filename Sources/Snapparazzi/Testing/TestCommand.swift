@@ -14,6 +14,14 @@ private func testArgumentDescription(_ action: CLIAction) -> String {
         let output = options.outputPath ?? "default"
         let maxDimension = options.maxDimension.map(String.init) ?? "nil"
         return "mode=\(options.mode.rawValue);window=\(window);interval=\(interval);output=\(output);format=\(options.format.rawValue);maxDimension=\(maxDimension)"
+    case .recordingHelp:
+        return "mode=record-help"
+    case .record(let options):
+        let window = options.windowID.map(String.init) ?? "nil"
+        let duration = options.duration.map(stableNumber) ?? "nil"
+        let output = options.outputPath ?? "default"
+        let maxDimension = options.maxDimension.map(String.init) ?? "nil"
+        return "mode=record;window=\(window);audio=\(options.audio.rawValue);fps=\(options.fps);codec=\(options.codec.rawValue);duration=\(duration);output=\(output);maxDimension=\(maxDimension)"
     }
 }
 
@@ -51,6 +59,16 @@ func runTestCommand(arguments: [String]) -> Never {
     case "arguments":
         do {
             let action = try parseArguments(Array(arguments.dropFirst(3)))
+            print(testArgumentDescription(action))
+        } catch let error as CLIUsageError {
+            print("ERROR: \(error.message)")
+            exit(2)
+        } catch {
+            exit(2)
+        }
+    case "record-arguments":
+        do {
+            let action = try parseRecordingArguments(Array(arguments.dropFirst(3)))
             print(testArgumentDescription(action))
         } catch let error as CLIUsageError {
             print("ERROR: \(error.message)")
