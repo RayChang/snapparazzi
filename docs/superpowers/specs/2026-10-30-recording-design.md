@@ -123,7 +123,7 @@ Sources/Snapparazzi/
 │   ├── AudioCapture.swift           # PCM 轉換、時間範圍裁切
 │   ├── VideoWriter.swift            # 第一階段 AVAssetWriter
 │   ├── AudioMixer.swift             # both 的離線混音與影片 passthrough
-│   ├── FrameComposer.swift          # 固定畫布、縮放、黑畫面
+│   ├── FrameComposer.swift          # 黑畫面、重複畫面（SCK 畫面直接寫入）
 │   └── RecordingTimeline.swift      # 共同原點、幀排程、截止時間
 └── Testing/
     └── TestCommand.swift            # 原 --test 契約與新 parser probe
@@ -160,11 +160,11 @@ flowchart TD
 - SDR、BGRA 輸入；影片 h264 或 hevc；不做 HDR。設定 frame interval `CMTime(value: 1, timescale: fps)`、`showsCursor = false`、有限 queue depth（起始 3）。
 - 以所選視窗的實際 backing pixels 決定起始大小，不可把 points 直接當 pixels；Retina／外接螢幕的 scale 取得方式在技術驗證先確認。
 - 令原始尺寸 `w,h`，`s = min(1, maxDimension / max(w,h))`（沒有設定則 s=1），`W=2*floor(w*s/2)`、`H=2*floor(h*s/2)`；任一結果小於 2 或 codec 不支援尺寸則明確失敗。未設定 maxDimension 的超大視窗不偷偷縮小或切換 codec，提示使用 `-m`。
-- 輸出畫布 W×H 在整個 session 固定；視窗縮放、移動到不同 DPI 螢幕後，依當前內容等比例縮放置中、黑邊補齊，不拉伸、不放大內容、不重新建立 writer。
-- source stream 的配置與 writer 畫布分開：先由 probe 確認 SCK frame attachments 的 contentRect/scale 語意，裁出真正內容；必要時更新 SCStreamConfiguration 的來源尺寸以維持當前視窗比例。不能讓 SCK 先把新比例拉伸成舊 W×H，再宣稱 FrameComposer 可以還原；writer W×H 始終不變。
-- 使用一個可重用 `CIContext` 與有限 `CVPixelBufferPool`，不能每幀重新建立 heavyweight context 或 pool；限制 outstanding pixel buffers。
+- 輸出畫布 W×H 在整個 session 固定，即 SCStreamConfiguration 的 width/height，錄影中不更新、不重新建立 writer。視窗縮放後由 SCK 等比例縮入畫布：不拉伸、不放大，**內容貼齊左上角，右／下補黑**。第一版接受不置中（2026-10-30 使用者決定；Task 0 實測見交接紀錄）。
+- SCK 的 pixel buffer 直接送 writer，不另做縮放、裁切或置中；contentRect／contentScale 只作診斷記錄。
+- 黑畫面使用一個預先建立、固定 W×H 的 buffer 重複送出；不需要 CIContext 或額外 pixel pool。
 - 排程器在相同畫面／idle 時重用最近畫面，維持目標 fps。負載過高只跳過已過期的幀槽，計數並保留實際時間，不能靠重新連續編號把影片加速。
-- 判定目標視窗暫時不可見（最小化／其他 Space）後，最多保留最後畫面 1 秒，接著輸出固定大小黑畫面，audio 繼續；恢復後續錄同 ID + PID。不要以「沒有新畫面 callback」判定 unavailable，靜態視窗也可能是 idle。
+- 最小化：SCK 送出一張 `suspended` 狀態畫面後不再有 screen callback，以此判定暫時不可見；最多保留最後畫面 1 秒，接著輸出黑畫面，audio 繼續；收到 `complete` 即恢復。切換到其他 Space 時 SCK 持續送真實畫面，照常錄製，不視為不可見（Task 0 實測，macOS 26.5）。
 - 視窗確定關閉、owner PID 消失、stream fatal error：停止並保留可完成的片段，exit 1；不自動挑另一個視窗。CG 全視窗資訊與可見視窗資訊分開判斷，不能把 minimize 當 close。
 
 ### 5.2 音訊

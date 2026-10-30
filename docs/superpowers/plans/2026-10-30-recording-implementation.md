@@ -227,7 +227,7 @@ protocol RecordingSink {
 - [ ] writer init 接收 session、固定尺寸/fps/codec、audio mode；none/system/mic→MP4，both→MOV。確認容器、video settings、audio settings 支援後才 startWriting。
 - [ ] video 輸入 H.264/HEVC、SDR、規格 target bitrate；audio 0/1/2 個 AAC input。不能為未啟用來源建立多餘 tracks。
 - [ ] first frame 決定 t0 後 writer `startSession(atSourceTime: .zero)`；所有 append 只在 media queue，嚴格處理 status/Bool，real-time inputs=true。
-- [ ] 使用 pixel buffer adaptor/pool 接收 FrameComposer 的固定尺寸 buffer；append method 區分 backpressure 與 failed，不把 !ready 當 writer永久壞掉，也不無限等待。
+- [ ] 使用 pixel buffer adaptor 接收固定尺寸 buffer（SCK 畫面或黑畫面）；append method 區分 backpressure 與 failed，不把 !ready 當 writer永久壞掉，也不無限等待。
 - [ ] `finish(at:)` 一次性：拒新工作、尾端完成、endSession、mark inputs finished、await finishWriting、確認 .completed；cancel 不能回報正常 URL。
 - [ ] 合成3秒彩色幀＋帶時間定位的tone，分別建立none/system/mic/both stage，使用 AVAssetReader 檢查 tracks、codec、尺寸、timestamps、可解碼內容，而不只看 file size。
 - [ ] 共用檢查邏輯放 `tests/RecordingSupport/AssetInspector.swift`，另以 `tests/RecordingInspect/main.swift` 建置 `.build/recording-inspect` 命令；產品與unit test入口都不包含它。輸出完整媒體檢查JSON，實作驗證手冊要求的欄位與非零錯誤碼。
@@ -240,10 +240,10 @@ protocol RecordingSink {
 **新增：** FrameComposer.swift，尺寸／pixel tests。
 
 - [ ] 依 task0 證明的方法取得 backing pixels，計算不放大且偶數對齊的初始尺寸；驗證2px、odd dimensions、Retina、maxDimension與unsupported-size錯誤。
-- [ ] 建立 session 固定 CIContext、CVPixelBufferPool 與黑畫面；每次只取有限 buffer，pixel pool 不足回 backpressure，不再無限配置。
-- [ ] 最新來源 frame scale-to-fit／置中／黑邊；來源縮小不得放大；resize後影片畫布不變。用四色角 fixture 檢查方向／顏色／邊界，避免上下顛倒或裁錯座標。
-- [ ] 確認SCK未在來源端先拉伸：讀取經Task0驗證的contentRect/scale附件，必要時更新stream configuration來源尺寸；只更新來源，不改writer畫布。對非同步配置更新的過渡frame也需裁切／縮放測試。
-- [ ] 接 Timeline 的 ticker，在 idle 重複最新畫面；unavailable超1秒改黑畫面，恢復接原視窗；未知狀態不能把其他視窗當備援。
+- [ ] 預先建立一個固定 W×H 的黑畫面 buffer；SCK 畫面直接 append，不建立 CIContext 或額外 pool。
+- [ ] 不做縮放或置中：SCK 已等比例縮入固定畫布、貼齊左上角、不放大（Task 0 實測，使用者決定接受左上角）。驗證 resize 後 track 尺寸不變、畫面未拉伸。
+- [ ] 錄影中不更新 SCStreamConfiguration 的尺寸。
+- [ ] 接 Timeline 的 ticker，沒有新畫面時重複最新畫面；收到`suspended`超過1秒改黑畫面，收到`complete`恢復；未知狀態不能把其他視窗當備援。
 - [ ] 測連續drop不會讓時間軸加速；source frame callback不等於輸出fps，兩者分開計數。
 
 **完成條件：** 不必依靠肉眼即可由pixel assertions驗證aspect ratio、black、fixed size；實機Retina仍留到Task16。
@@ -257,7 +257,7 @@ protocol RecordingSink {
 - [ ] 以正確output types加入screen、system audio、mic，明確持有delegate/output物件，避免start後被釋放。
 - [ ] callback先檢查sample valid、screen frame status，再經有界adapter傳遞；保留buffer直到消費完，不能存不安全的borrowed指標。
 - [ ] delegate fatal event轉成一次engine failure；start部分成功後失敗也要解除已加output／stop資源。
-- [ ] 實作可見性與存活監控：可見清單判斷minimize/space，全視窗+PID判斷close，不以沒有callback判斷關閉；監控間隔250ms，費用需測量。
+- [ ] 最小化以frame status `suspended`判斷，切換Space不需處理（Task 0實測）；close以全視窗清單＋PID判斷（行為待Task 0補測），不以沒有callback判斷關閉；監控間隔250ms，費用需測量。
 - [ ] stop與callbacks barrier按Task0結果實作，測試fake late callbacks；不能將stop函式返回視為所有自己排出的queue work也完成。
 
 **完成條件：** Mac probe改用正式adapter可以取得正確三種source；沒有main queue blocking、無界Tasks或跨queue state競爭。

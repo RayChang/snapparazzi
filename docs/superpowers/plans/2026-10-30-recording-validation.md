@@ -206,7 +206,7 @@ OS-02 若沒有測試機，必須保留為未執行。單純檢查 `#available` 
 5. 第二階段 video 使用壓縮 sample passthrough。比對 staging 與 final 的 codec、尺寸、sample 數、sample PTS／duration；必要時比對壓縮 payload。不可用第二次 video 編碼掩蓋時間軸錯誤。
 6. 驗證 0.5 秒短片也有可解碼 video；長片尾端輸入不整除 video frame period／audio frame size 時，末尾差值在規格容許範圍。
 7. 以 sample 級斷言驗證共同 epoch、延遲與裁切。AAC 編碼 priming／padding 需以有效解碼時間與 edit metadata 解釋；不能忽略整段固定偏移。
-8. 用 1001×777、極窄／高、Retina 尺寸測試幾何：canvas 兩邊皆偶數、保持比例、letterbox、never upscale，`--max-dimension` 限制的是實際輸出 pixels。錄製中 resize 不改已建立 writer 的 track 尺寸。
+8. 用 1001×777、極窄／高、Retina 尺寸測試幾何：canvas 兩邊皆偶數、保持比例、左上角對齊補黑、never upscale，`--max-dimension` 限制的是實際輸出 pixels。錄製中 resize 不改已建立 writer 的 track 尺寸。
 9. 注入磁碟寫入／mix reader／mix writer／最終發布失敗，確認 output final path 不存在且 staging 依規格保存或清理，不把損毀 MP4 當成功。
 
 ## 7. L3：真實錄影操作
@@ -269,8 +269,8 @@ OS-02 若沒有測試機，必須保留為未執行。單純檢查 `#available` 
 ### 7.4 視窗、尺寸與時間連續性
 
 1. 錄 both 30 秒，期間遮住目標視窗，再恢復；確認是否仍擷取目標內容，而非把遮擋 App 錄進去。
-2. 目標最小化 5 秒後還原；另一次移到其他 Space 5 秒後還原。記錄實際 unavailable 事件。依規格：不可用超過 1 秒後畫面轉黑，audio 繼續；恢復後接續同一固定畫布與時間軸，不跳過 5 秒。
-3. 錄製中 resize 視窗、移到不同 DPI 螢幕。video track width/height 不變，畫面保持比例、letterbox、不 upscale；沒有 writer format change crash。
+2. 目標最小化 5 秒後還原：收到 `suspended` 超過 1 秒後畫面轉黑，audio 繼續；恢復後接續同一固定畫布與時間軸，不跳過 5 秒。另一次切到其他 Space 5 秒後切回：持續錄到視窗內容，不轉黑。
+3. 錄製中 resize 視窗、移到不同 DPI 螢幕。video track width/height 不變，畫面保持比例、貼齊左上角、右／下補黑、不 upscale；沒有 writer format change crash。
 4. 目標視窗關閉、App 結束分開測。程式停止，嘗試完成已有有效片段，exit 1；不自動接到另一個 window ID 或重啟 App 的 PID。
 5. 在畫面移動滑鼠，確認預設不包含 cursor。
 6. 使用超過 max-dimension 的 Retina 來源錄 `--max-dimension 1280`，檢查檔案 pixel 尺寸而非螢幕 points。再用小視窗測不會放大。
