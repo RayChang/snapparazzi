@@ -70,11 +70,11 @@ assert_contains "short help prints the same usage" "$last_output" "snapparazzi [
 
 run_cli --version
 assert_equal "--version exits successfully" "0" "$last_status"
-assert_equal "version output is stable" "snapparazzi 1.1.0" "$last_output"
+assert_equal "version output is stable" "snapparazzi 1.2.0" "$last_output"
 
 run_cli -V
 assert_equal "short version exits successfully" "0" "$last_status"
-assert_equal "short version matches long version" "snapparazzi 1.1.0" "$last_output"
+assert_equal "short version matches long version" "snapparazzi 1.2.0" "$last_output"
 
 run_cli --definitely-not-an-option
 assert_equal "unknown options use the usage exit status" "2" "$last_status"
