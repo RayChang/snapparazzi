@@ -74,10 +74,22 @@
 2. App整個結束（⌘Q）時的行為。
 3. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
 
-## Task 1：使用者已回報的本地基準
+## Task 1：既有行為基準（完成）
 
-使用者的Mac為macOS26.5.2、SDK26.5、Swift6.3.3、arm64、Command Line Tools；`make test`原生release build成功，CLI 53／53、installer 7／7通過。這是使用者貼出的結果，不是雲端執行結果；該次Mac HEAD尚未提供，仍需補記。
+- HEAD `c8e9e14`，工作目錄乾淨；macOS 26.5.2、SDK 26.5、Swift 6.3.3、arm64、Command Line Tools。
+- `make clean && make test` exit 0：CLI 53／53、installer 7／7。
+- 以不需權限的42個案例（help／version／錯誤參數／`--test`各子命令）保存stdout、stderr與exit code作為重構前後比對基準。
+- **部署下限**：Makefile未指定`-target`，binary `minos`＝編譯機系統（本機26.0）。一行安裝在使用者自己的Mac上編譯，實際下限永遠是使用者的系統，不存在「提高既有下限」的問題；要注意的是在macOS 15以前的系統或舊SDK上編譯時，`record`用到的SCK API必須以`#available`隔離，否則截圖功能也會無法編譯。
+
+## Task 2：拆檔、建置與安裝（完成）
+
+- `main.swift`依計畫表以行號機械式搬到`CLI/`、`Core/`、`Capture/`、`Testing/`與`AppRunner.swift`（腳本檢查原檔每行恰好搬一次）。跨檔宣告改internal，其餘維持private；唯一改名是`main()`→`appMain()`，`main.swift`只剩`exit(appMain())`。
+- 拆檔後42個基準案例的輸出與exit code逐字相同；CLI 53／53通過；warnings-as-errors無警告。
+- Makefile以`find`收集所有`.swift`（含子目錄、穩定排序）；另有`.build/build-inputs.txt`記錄編譯器、flags與檔案清單，只在內容改變時更新。實測：無變更不重編；修改、新增、刪除檔案及改flags都會重編。（GNU Make 3.81只比對到秒，同一秒內的連續操作可能漏判。）
+- `install.sh`改下載`https://codeload.github.com/RayChang/snapparazzi/tar.gz/<ref>`（實測main、`feat/recording`、SHA皆200），ref限`[A-Za-z0-9._/-]`且拒絕`..`、開頭`-`／`/`；拒絕含絕對路徑或`..`的壓縮檔成員；解壓略過最上層資料夾，檢查Makefile與main.swift存在後以同一Makefile編譯。其餘行為不變。
+- 安裝測試由7項擴充為25項：tag、含`/`的分支、含空白的安裝路徑、非法ref不呼叫curl、下載失敗／缺檔／編譯失敗皆保留舊binary、危險路徑、無暫存殘留。假curl改為回傳由工作目錄打包的壓縮檔。
+- `make clean && make test` exit 0：CLI 53／53、installer 25／25。
 
 ## 其他 Tasks
 
-Task2～16尚未開始。不要在沒有Mac技術gate的情況下把prototype搬入production或宣稱錄影功能可用。
+Task3～16尚未開始。不要在沒有Mac技術gate的情況下把prototype搬入production或宣稱錄影功能可用。
