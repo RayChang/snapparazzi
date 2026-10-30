@@ -215,8 +215,13 @@ final class RecordingPipeline {
         guard abs(error) > RecordingPipeline.driftDeadband, frames > 2 else { return }
         let middle = frames / 2 * recordingChannels
         if error > 0 {
-            let inserted = (0..<recordingChannels).map {
-                (samples[middle - recordingChannels + $0] + samples[middle + $0]) / 2
+            // Spelled out with explicit types: Xcode 16's compiler times out type-checking
+            // the equivalent one-line map (found by the macOS 14 CI job).
+            var inserted: [Float] = []
+            for channel in 0..<recordingChannels {
+                let before: Float = samples[middle - recordingChannels + channel]
+                let after: Float = samples[middle + channel]
+                inserted.append((before + after) / 2)
             }
             samples.insert(contentsOf: inserted, at: middle)
             track.stats.driftCorrection += 1
