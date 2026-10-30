@@ -3,6 +3,7 @@ import CoreAudio
 
 // Test helper for simulating a microphone that disappears mid-recording:
 //   recording-audio-device list                       print "in|out UID name" for every device
+//   recording-audio-device output-volume UID          print the output volume (0–1) of UID
 //   recording-audio-device default-input              print the default input device UID
 //   recording-audio-device create-aggregate UID        create a public aggregate device that
 //                                                      wraps input UID; print the new UID
@@ -80,6 +81,19 @@ case (2, "list"):
             + (hasStreams(device, scope: kAudioObjectPropertyScopeOutput) ? "out" : "")
         print("\(direction)\t\(uid(of: device))\t\(name(of: device))")
     }
+case (3, "output-volume"):
+    guard let id = device(for: arguments[2]) else { fail("no device with UID \(arguments[2])") }
+    for element: UInt32 in [0, 1] {
+        var volume = Float32(0)
+        var size = UInt32(MemoryLayout<Float32>.size)
+        var property = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyVolumeScalar,
+                                                  mScope: kAudioDevicePropertyScopeOutput, mElement: element)
+        if AudioObjectGetPropertyData(id, &property, 0, nil, &size, &volume) == noErr {
+            print(volume)
+            exit(0)
+        }
+    }
+    print("1.0") // no volume control: treat as full volume
 case (2, "default-input"):
     print(uid(of: defaultInput()))
 case (3, "create-aggregate"):

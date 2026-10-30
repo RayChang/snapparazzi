@@ -201,6 +201,10 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private var lastDiskCheck = 0.0
     private var lastMicrophoneCheck = 0.0
     private let microphoneID: String?
+    // Test hook for the acceptance suite: drop every screen sample so the real
+    // 5-second "no video frame" timeout can be exercised (ScreenCaptureKit keeps
+    // sending frames even for a static window, so there is no natural way).
+    private let ignoreVideoForTesting = ProcessInfo.processInfo.environment["SNAPPARAZZI_TEST_IGNORE_VIDEO"] == "1"
     private var stopContinuation: CheckedContinuation<Void, Never>?
     private var stopRequested = false
 
@@ -354,6 +358,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         do {
             switch type {
             case .screen:
+                guard !ignoreVideoForTesting else { return }
                 guard let info = (CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
                                   as? [[SCStreamFrameInfo: Any]])?.first,
                       let raw = info[.status] as? Int, let status = SCFrameStatus(rawValue: raw) else { return }

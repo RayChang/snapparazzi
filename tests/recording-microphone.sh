@@ -4,7 +4,13 @@
 # 1. Sync of the microphone track: the fixture beeps through the MacBook speakers
 #    (only its own output is redirected) while the MacBook microphone records; the
 #    beeps must line up with the white flashes within 100 ms. You will hear ~10 beeps.
-# 2. A microphone that disappears: the current default input is wrapped in a temporary
+#    Skipped (not passed) when the MacBook speakers are below 20% volume.
+# 2. Changing the default input mid-recording: the recording must stay on the microphone
+#    it started with. It starts on a temporary aggregate device; after 4 s the default
+#    switches to another input and the recording must carry on; after 8 s the starting
+#    device is destroyed, which must stop the recording (if it had followed the new
+#    default it would run to the end).
+# 3. A microphone that disappears: the current default input is wrapped in a temporary
 #    aggregate device that is destroyed 4 s into a recording, which must stop with an
 #    error and keep what it recorded instead of continuing with a silent track.
 
@@ -52,7 +58,15 @@ start_fixture() {
 }
 
 # 1. Microphone-track sync through the air.
-if "$device_tool" list | grep -q $'\tBuiltInSpeakerDevice\t' && "$device_tool" list | grep -q $'\tBuiltInMicrophoneDevice\t'; then
+skipped=0
+volume="$("$device_tool" output-volume BuiltInSpeakerDevice 2>/dev/null || print 0)"
+if ! "$device_tool" list | grep -q $'\tBuiltInSpeakerDevice\t' || ! "$device_tool" list | grep -q $'\tBuiltInMicrophoneDevice\t'; then
+  print "SKIP: microphone-track sync (MacBook speakers or microphone not available)"
+  skipped=1
+elif (( $(python3 -I -c "print(int(float('${volume:-0}') < 0.2))") )); then
+  print "SKIP: microphone-track sync (MacBook speakers at ${volume}; needs at least 0.2 to be heard)"
+  skipped=1
+else
   "$device_tool" set-default-input BuiltInMicrophoneDevice || exit 1
   start_fixture --markers --output-device BuiltInSpeakerDevice --quit-after 60
   "$binary" record -w "$window_id" --audio mic --duration 20 -o "$work/sync.mp4" > "$work/sync.out" 2>&1
@@ -64,11 +78,38 @@ if "$device_tool" list | grep -q $'\tBuiltInSpeakerDevice\t' && "$device_tool" l
   check "microphone track: beeps within 100 ms of the flashes" \
     "$(python3 -I -c "import json; s=json.load(open('$work/sync.json'))['sync']; print(int(s['max_abs_offset'] is not None and s['max_abs_offset'] < 0.1))")"
   "$device_tool" set-default-input "$original"
-else
-  check "MacBook speakers and microphone are available for the sync check" 0
 fi
 
-# 2. The microphone disappears mid-recording.
+# 2. The default input changes mid-recording; the recording stays on its microphone.
+test_uid="$("$device_tool" create-aggregate "$original")" || exit 1
+"$device_tool" set-default-input "$test_uid" || exit 1
+perl -e 'select(undef, undef, undef, 1)'
+start_fixture --markers --quit-after 60
+"$binary" record -w "$window_id" --audio mic --duration 20 -o "$work/switch.mp4" > "$work/switch.out" 2>&1 &
+record_pid=$!
+perl -e 'select(undef, undef, undef, 4)'
+"$device_tool" set-default-input "$original"
+print "  default input switched from the test device to: $("$device_tool" default-input)"
+perl -e 'select(undef, undef, undef, 4)'
+check "default input switch: still recording 4 s after the default changed" "$(kill -0 "$record_pid" 2>/dev/null && print 1 || print 0)"
+"$device_tool" destroy "$test_uid" && test_uid=""
+wait "$record_pid"
+exit_code=$?
+cat "$work/switch.out" | grep -E 'microphone:|停止原因'
+check "default input switch: removing the starting device stops the recording (it never followed the new default)" \
+  "$(( exit_code == 1 ))"
+check "default input switch: the stop names the microphone" "$(grep -q 'microphone was disconnected' "$work/switch.out" && print 1 || print 0)"
+"$inspect" "$work/switch.mp4" > "$work/switch.json" 2>/dev/null
+check "default input switch: the microphone track ran through the switch (about 8 s, no gap)" \
+  "$(python3 -I -c "
+import json, re
+r = json.load(open('$work/switch.json'))
+line = [l for l in open('$work/switch.out') if 'microphone: buffers' in l][0]
+padded = float(re.search(r'padded ([0-9.]+) s', line).group(1))
+print(int(7 < r['duration'] < 10.5 and len(r['audio']) == 1 and padded < 1.5))")"
+perl -e 'select(undef, undef, undef, 1)'
+
+# 3. The microphone disappears mid-recording.
 test_uid="$("$device_tool" create-aggregate "$original")" || exit 1
 "$device_tool" set-default-input "$test_uid" || exit 1
 perl -e 'select(undef, undef, undef, 1)'
@@ -97,4 +138,4 @@ if (( failures > 0 )); then
   print -u2 "${failures}/${checks} microphone checks failed"
   exit 1
 fi
-print "All ${checks} microphone checks passed"
+(( skipped )) && print "All ${checks} microphone checks passed (the sync check was skipped)" || print "All ${checks} microphone checks passed"

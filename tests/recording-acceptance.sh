@@ -199,6 +199,19 @@ check "unknown window: exit 1" "$(( exit_code == 1 ))"
 check "no stage folders left except the cancelled one" \
   "$(( $(print -l "$work"/.*.snapparazzi-*(N) | grep -vc cancel) == 0 ))"
 
+# 8b. No complete frame within 5 s: stop with exit 1 and leave nothing behind.
+#     (SNAPPARAZZI_TEST_IGNORE_VIDEO makes record drop every screen sample.)
+start_fixture --markers --quit-after 60
+started=$(date +%s)
+SNAPPARAZZI_TEST_IGNORE_VIDEO=1 "$binary" record -w "$window_id" --audio system --duration 20 -o "$work/noframe.mp4" > "$work/noframe.out" 2>&1
+exit_code=$?
+elapsed=$(( $(date +%s) - started ))
+check "no video frame: exit 1" "$(( exit_code == 1 ))"
+check "no video frame: gives up after about 5 s (${elapsed} s)" "$(( elapsed >= 5 && elapsed <= 9 ))"
+check "no video frame: explains the timeout" "$(grep -q 'No video frame within 5 seconds' "$work/noframe.out" && print 1 || print 0)"
+check "no video frame: no output or stage folder left" \
+  "$([[ ! -e "$work/noframe.mp4" && -z "$(print -l "$work"/.noframe.mp4.snapparazzi-*(N))" ]] && print 1 || print 0)"
+
 # 9. Disk space, on a small disk image: refuse up front, and stop at the 512 MiB low-water mark.
 dmg="$work/small.dmg"
 volume="$work/small-volume"
