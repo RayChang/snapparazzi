@@ -25,8 +25,11 @@ TEST_SOURCES := $(shell find tests/RecordingTests -type f -name '*.swift' 2>/dev
 TEST_BINARY := $(BUILD_DIR)/recording-tests
 INSPECT_SOURCES := $(shell find tests/RecordingInspect -type f -name '*.swift' 2>/dev/null | LC_ALL=C sort)
 INSPECT_BINARY := $(BUILD_DIR)/recording-inspect
+FIXTURE_SOURCES := $(shell find tests/RecordingFixtureApp -type f -name '*.swift' 2>/dev/null | LC_ALL=C sort)
+FIXTURE_BINARY := $(BUILD_DIR)/recording-fixture-app
+FIXTURE_APP := $(BUILD_DIR)/RecordingFixture.app
 
-.PHONY: all build test test-recording recording-inspect install clean FORCE
+.PHONY: all build test test-recording recording-inspect recording-acceptance install clean FORCE
 
 all: build
 
@@ -56,6 +59,23 @@ $(INSPECT_BINARY): $(SUPPORT_SOURCES) $(INSPECT_SOURCES) $(BUILD_INPUTS) Makefil
 	$(SWIFTC) $(SWIFT_FLAGS) $(SUPPORT_SOURCES) $(INSPECT_SOURCES) -o $(INSPECT_BINARY)
 
 recording-inspect: $(INSPECT_BINARY)
+
+$(FIXTURE_BINARY): $(FIXTURE_SOURCES) $(BUILD_INPUTS) Makefile
+	$(SWIFTC) $(SWIFT_FLAGS) $(FIXTURE_SOURCES) -o $(FIXTURE_BINARY)
+
+# The fixture runs as its own .app (launched with open -n), not as a terminal child.
+$(FIXTURE_APP): $(FIXTURE_BINARY)
+	rm -rf $@
+	mkdir -p $@/Contents/MacOS
+	cp $(FIXTURE_BINARY) $@/Contents/MacOS/RecordingFixture
+	/usr/libexec/PlistBuddy -c 'Add :CFBundleIdentifier string dev.snapparazzi.recording-fixture' \
+		-c 'Add :CFBundleExecutable string RecordingFixture' -c 'Add :CFBundlePackageType string APPL' \
+		-c 'Add :CFBundleName string RecordingFixture' $@/Contents/Info.plist >/dev/null
+	codesign --force --sign - $@
+
+# Opt-in real recordings on this Mac (needs Screen Recording/Microphone permission and a GUI).
+recording-acceptance: build $(INSPECT_BINARY) $(FIXTURE_APP)
+	tests/recording-acceptance.sh
 
 test-recording: $(TEST_BINARY)
 	$(TEST_BINARY)

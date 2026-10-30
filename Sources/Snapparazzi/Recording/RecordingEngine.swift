@@ -10,6 +10,8 @@ import Darwin
 
 // Called by AppRunner for `record`: runs the async recording and exits with its status.
 func runRecordCommand(_ options: RecordingOptions) -> Never {
+    // Progress lines ("Recording…", "Mixing…") must appear promptly even when piped.
+    setvbuf(stdout, nil, _IOLBF, 0)
     let signals = RecordingSignals()
     Task {
         let status: Int32

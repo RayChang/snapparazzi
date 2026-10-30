@@ -3,14 +3,47 @@ import Foundation
 // recording-inspect FILE — prints a JSON report of a recording: tracks, codecs,
 // sizes, duration, leading audio offsets, audio levels, and when audio first
 // becomes audible. Exits 1 if the file cannot be read or has no video track.
+// With --sync, also pairs white flashes with 1 kHz beeps (fixture app markers)
+// and reports audio-minus-video offsets.
+
+// Also:
+//   recording-inspect --levels FILE HZ...      tone amplitude per frequency (from 1 s to 1 s before the end)
+//   recording-inspect --luma FILE SECONDS...   mean frame luminance (0–255) at each time
 
 setvbuf(stdout, nil, _IOLBF, 0)
 let arguments = CommandLine.arguments
-guard arguments.count == 2 else {
-    fputs("usage: recording-inspect FILE\n", stderr)
+if arguments.count >= 4, arguments[1] == "--levels" || arguments[1] == "--luma" {
+    let file = URL(fileURLWithPath: arguments[2])
+    let values = arguments.dropFirst(3).compactMap(Double.init)
+    do {
+        var results: [String] = []
+        if arguments[1] == "--levels" {
+            let pcm = try await decodeStereo48k(file)
+            let length = Double(pcm.count / 2) / 48_000 - 2
+            for frequency in values {
+                let level = max(toneAmplitude(pcm, channel: 0, start: 1, length: length, frequency: frequency),
+                                toneAmplitude(pcm, channel: 1, start: 1, length: length, frequency: frequency))
+                results.append(String(format: "%.4f", level))
+            }
+        } else {
+            for seconds in values {
+                let color = try await frameMeanColor(file, at: seconds)
+                results.append(String(format: "%.1f", 0.299 * Double(color.red) + 0.587 * Double(color.green) + 0.114 * Double(color.blue)))
+            }
+        }
+        print(results.joined(separator: " "))
+        exit(0)
+    } catch {
+        fputs("recording-inspect: \(error.localizedDescription)\n", stderr)
+        exit(1)
+    }
+}
+guard arguments.count == 2 || (arguments.count == 3 && arguments[2] == "--sync") else {
+    fputs("usage: recording-inspect FILE [--sync]\n", stderr)
     exit(2)
 }
 let url = URL(fileURLWithPath: arguments[1])
+let measureSync = arguments.count == 3
 
 do {
     let report = try await inspectAsset(url)
@@ -40,7 +73,25 @@ do {
         entry["first_audible"] = audibleAt as Any? ?? NSNull()
         audioReports.append(entry)
     }
+    var syncReport: Any = NSNull()
+    if measureSync {
+        let flashes = try await flashOnsets(url)
+        let beeps = toneBurstOnsets(try await decodeStereo48k(url), frequency: 1000)
+        var pairs: [[String: Double]] = []
+        for flash in flashes {
+            guard let beep = beeps.min(by: { abs($0 - flash) < abs($1 - flash) }), abs(beep - flash) < 0.5 else { continue }
+            pairs.append(["video": flash, "audio": beep, "offset": beep - flash])
+        }
+        let offsets = pairs.compactMap { $0["offset"] }
+        syncReport = [
+            "flashes": flashes.count, "beeps": beeps.count, "pairs": pairs,
+            "first_offset": offsets.first as Any? ?? NSNull(),
+            "last_offset": offsets.last as Any? ?? NSNull(),
+            "max_abs_offset": offsets.map(abs).max() as Any? ?? NSNull()
+        ]
+    }
     let json: [String: Any] = [
+        "sync": syncReport,
         "file": url.path, "duration": report.duration,
         "video": report.video.map(\.json), "audio": audioReports
     ]

@@ -138,3 +138,66 @@ func frameMeanColor(_ url: URL, at seconds: Double) async throws -> (red: Int, g
                        format: .RGBA8, colorSpace: nil)
     return (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
 }
+
+// Times (seconds) where the mean luminance of the video jumps from dark to bright,
+// e.g. the fixture app's white flashes. Frames are sampled sparsely for speed.
+func flashOnsets(_ url: URL) async throws -> [Double] {
+    let asset = AVURLAsset(url: url)
+    guard let track = try await asset.loadTracks(withMediaType: .video).first else { return [] }
+    let reader = try AVAssetReader(asset: asset)
+    let output = AVAssetReaderTrackOutput(track: track, outputSettings: [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+    ])
+    output.alwaysCopiesSampleData = false
+    reader.add(output)
+    reader.startReading()
+    var samples: [(time: Double, luma: Double)] = []
+    while let buffer = output.copyNextSampleBuffer() {
+        guard let image = CMSampleBufferGetImageBuffer(buffer) else { continue }
+        CVPixelBufferLockBaseAddress(image, .readOnly)
+        let width = CVPixelBufferGetWidth(image), height = CVPixelBufferGetHeight(image)
+        let rowBytes = CVPixelBufferGetBytesPerRow(image)
+        let base = CVPixelBufferGetBaseAddress(image)!.assumingMemoryBound(to: UInt8.self)
+        var total = 0.0, count = 0.0
+        for row in stride(from: height / 8, to: height * 7 / 8, by: max(1, height / 32)) {
+            for column in stride(from: width / 8, to: width * 7 / 8, by: max(1, width / 32)) {
+                let pixel = base + row * rowBytes + column * 4
+                total += 0.114 * Double(pixel[0]) + 0.587 * Double(pixel[1]) + 0.299 * Double(pixel[2])
+                count += 1
+            }
+        }
+        CVPixelBufferUnlockBaseAddress(image, .readOnly)
+        samples.append((CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(buffer)), total / max(count, 1)))
+    }
+    guard let low = samples.map(\.luma).min(), let high = samples.map(\.luma).max(), high - low > 40 else { return [] }
+    let threshold = (low + high) / 2
+    var onsets: [Double] = []
+    for index in 1..<samples.count where samples[index - 1].luma < threshold && samples[index].luma >= threshold {
+        onsets.append(samples[index].time)
+    }
+    return onsets
+}
+
+// Times where a `frequency` burst starts in decoded 48 kHz stereo audio (5 ms steps).
+func toneBurstOnsets(_ samples: [Float], frequency: Double) -> [Double] {
+    let step = 0.005
+    var levels: [Double] = []
+    var time = 0.0
+    while (time + 0.01) * 48_000 * 2 < Double(samples.count) {
+        levels.append(max(toneAmplitude(samples, channel: 0, start: time, length: 0.01, frequency: frequency),
+                          toneAmplitude(samples, channel: 1, start: time, length: 0.01, frequency: frequency)))
+        time += step
+    }
+    guard let high = levels.max(), high > 0.02 else { return [] }
+    var onsets: [Double] = []
+    var inBurst = false
+    for (index, level) in levels.enumerated() {
+        if !inBurst, level >= high / 2 {
+            onsets.append(Double(index) * step + 0.005) // window centre
+            inBurst = true
+        } else if inBurst, level < high / 4 {
+            inBurst = false
+        }
+    }
+    return onsets
+}
