@@ -134,6 +134,10 @@ assert_contains \
   "installer points users to CLI help" \
   "$installer_output" \
   "snapparazzi --help"
+assert_equal \
+  "installer output has no codesign chatter" \
+  "" \
+  "$(print -r -- "$installer_output" | grep 'replacing existing signature')"
 
 # 2. Branch name with a slash, installed into a directory containing spaces.
 spaced_dir="${test_root}/dir with spaces/bin"
