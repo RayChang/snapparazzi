@@ -10,6 +10,7 @@ final class Results: @unchecked Sendable {
     var checks = 0
     var failures = 0
     var currentCase = 0
+    var directories: [URL] = []
 }
 
 setvbuf(stdout, nil, _IOLBF, 0)
@@ -40,6 +41,7 @@ func temporaryDirectory() -> URL {
     let url = FileManager.default.temporaryDirectory
         .appendingPathComponent("snapparazzi-recording-tests-\(UUID().uuidString)", isDirectory: true)
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    Results.shared.directories.append(url)
     return url
 }
 
@@ -274,7 +276,9 @@ guard results.checks > 0 else {
     exit(1)
 }
 if results.failures > 0 {
-    print("\(results.failures)/\(results.checks) recording checks failed")
+    print("\(results.failures)/\(results.checks) recording checks failed; files kept for diagnosis:")
+    results.directories.forEach { print("  \($0.path)") }
     exit(1)
 }
+results.directories.forEach { try? FileManager.default.removeItem(at: $0) }
 print("All \(results.checks) recording checks passed (\(cases.count) cases)")
