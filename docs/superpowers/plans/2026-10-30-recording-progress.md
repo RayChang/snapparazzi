@@ -39,7 +39,11 @@
 | 畫面縮放 | `config.width/height`與視窗比例不同時，SCK等比例縮入畫布並以`contentRect`／`contentScale`回報實際內容（例：1440×843→畫布1280×748，內容約1277.7×748，scale≈0.887） |
 | 靜止畫面 | 行事曆完全不動仍收到約28fps的`complete`畫面；解碼後1秒後的247張中僅18張差值>20（多為編碼雜訊），YouTube播放中則263／264。→ macOS 26.5上靜止內容仍按設定頻率送`complete`畫面 |
 | dirtyRects | 同一靜止視窗：首張為`0,0 0x0`，其後每張皆為一個`0,0 1279x962`（＝contentRect，單位為輸出畫布像素）；面積比例mean 0.996／max 0.999。→ **單窗模式下SCK每張都把整個內容標為dirty，不做變動偵測**；dirtyRects不能用來判斷靜止或省略編碼。probe的`screen_dirty`只看陣列是否為空，零面積首張被計為changed |
-| 媒體檢查 | 所有短片exit 0、writer completed、完整解碼；none為1 video、system為1 video＋1 AAC |
+| mic授權歸屬 | 首次`--audio mic`彈出授權並允許後，使用者TCC.db新增的是`com.googlecode.iterm2`（啟動此工作階段的終端機），**不是**probe binary（即使已嵌入Info.plist與穩定identifier）。→ 授權歸「負責的App」；換終端機或由其他App啟動需重新授權。拒絕／重新允許尚未測 |
+| mic（內建麥克風） | **48kHz、mono**、每buffer 512 samples（約10.7ms）；PTS同host clock域，抵達延遲約13～23ms；**首個mic PTS比首張畫面晚704ms**；尾端buffer越過終點約6ms（probe未做sample級裁切）。音量包絡顯示說話段−29～−35dB、底噪約−55dB |
+| both（換成藍牙耳機） | 1 video＋2 AAC（track2 system、track3 mic），無backpressure或掉資料。**mic變成24kHz、mono、每buffer 480 samples**（使用者此時改用藍牙耳機，推測為耳機通話模式）；mic晚238ms、system晚120ms開始。system peak 0.88，接近滿刻度 |
+| 媒體檢查 | 所有短片exit 0、writer completed、完整解碼；none為1 video、system／mic為1 video＋1 AAC、both為1 video＋2 AAC |
+| 工具陷阱 | `afconvert`轉出的WAV**忽略音軌前段的empty edit**（mic.mov轉出9.37秒，而非10秒），會把延遲音軌移到0；AVAssetReader則保留offset並補靜音。驗證工具只能用遵守edit list的AVFoundation |
 
 對規格／計畫的影響：
 
@@ -47,10 +51,13 @@
 - Task 7／8／13與驗證手冊：延遲音軌的檢查依「讀回時的offset」一列，不能以解碼first PTS判斷。
 - Task 9：ticker仍需要（規格不依賴callback），但實務上很少需重複畫面；靜止畫面也持續耗用編碼資源，L4效能需計入。不得依dirtyRects跳過編碼或判斷視窗可見性。
 - help／README：明寫同App其他視窗聲音會錄入。
+- Task 5／README：mic（推測螢幕錄製也是）授權歸啟動終端機等負責App，不是CLI本身；文件要教使用者到對應App授權。
+- Task 7／12：mic取樣率會隨裝置改變（48k→24k），起始延遲也不固定（0.24～0.7秒）。每來源獨立converter正規化為48k stereo、以實際PTS定位而非假設固定延遲，皆有實測依據。
+- Task 13：system peak可接近滿刻度，both混音的0.5增益是必要的。
 
 接續工作：
 
-1. mic授權（首次／拒絕／重新允許）、`mic`與`both`、HEVC、Ctrl-C收尾。
+1. mic拒絕／重新允許、HEVC、Ctrl-C收尾；錄影中切換預設麥克風（應維持起始裝置）與拔除裝置。
 2. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
 3. 合成fixture、雙AAC混音與壓縮video passthrough；驗證H264/HEVC及延遲音軌。
 4. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。

@@ -1,6 +1,6 @@
 # Task 0：獨立錄影驗證工具
 
-**目前狀態：已在 macOS 26.5.2 編譯並完成部分實測（none／system、App 範圍、時鐘），結果見[開發交接](../../docs/superpowers/plans/2026-10-30-recording-progress.md)；mic、both、Ctrl-C、Retina 等仍待測。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
+**目前狀態：已在 macOS 26.5.2 編譯並完成部分實測（none／system／mic／both、App 範圍、時鐘），結果見[開發交接](../../docs/superpowers/plans/2026-10-30-recording-progress.md)；Ctrl-C、HEVC、Retina 等仍待測。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
 
 此工具先驗證單一 SCStream 的畫面／App audio／microphone 回呼、原始格式與 PTS，以及 AVAssetWriter 的短片寫入。使用 ScreenCaptureKit 單視窗 filter；**音訊是否確實限定目標 App 必須實測，不能由 filter 名稱推論。**
 
