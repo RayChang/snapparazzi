@@ -4,7 +4,8 @@
 # 1. Sync of the microphone track: the fixture beeps through the MacBook speakers
 #    (only its own output is redirected) while the MacBook microphone records; the
 #    beeps must line up with the white flashes within 100 ms. You will hear ~10 beeps.
-#    Skipped (not passed) when the MacBook speakers are below 20% volume.
+#    If the MacBook speakers are below 20% volume they are set to 30% for this check and
+#    restored afterwards.
 # 2. Changing the default input mid-recording: the recording must stay on the microphone
 #    it started with. It starts on a temporary aggregate device; after 4 s the default
 #    switches to another input and the recording must carry on; after 8 s the starting
@@ -63,10 +64,13 @@ volume="$("$device_tool" output-volume BuiltInSpeakerDevice 2>/dev/null || print
 if ! "$device_tool" list | grep -q $'\tBuiltInSpeakerDevice\t' || ! "$device_tool" list | grep -q $'\tBuiltInMicrophoneDevice\t'; then
   print "SKIP: microphone-track sync (MacBook speakers or microphone not available)"
   skipped=1
-elif (( $(python3 -I -c "print(int(float('${volume:-0}') < 0.2))") )); then
-  print "SKIP: microphone-track sync (MacBook speakers at ${volume}; needs at least 0.2 to be heard)"
-  skipped=1
 else
+  restore_volume=""
+  if (( $(python3 -I -c "print(int(float('${volume:-0}') < 0.2))") )); then
+    restore_volume="$volume"
+    "$device_tool" set-output-volume BuiltInSpeakerDevice 0.3 || exit 1
+    print "  MacBook speakers temporarily set from ${volume} to $("$device_tool" output-volume BuiltInSpeakerDevice) for the beeps"
+  fi
   "$device_tool" set-default-input BuiltInMicrophoneDevice || exit 1
   start_fixture --markers --output-device BuiltInSpeakerDevice --quit-after 60
   "$binary" record -w "$window_id" --audio mic --duration 20 -o "$work/sync.mp4" > "$work/sync.out" 2>&1
@@ -78,6 +82,10 @@ else
   check "microphone track: beeps within 100 ms of the flashes" \
     "$(python3 -I -c "import json; s=json.load(open('$work/sync.json'))['sync']; print(int(s['max_abs_offset'] is not None and s['max_abs_offset'] < 0.1))")"
   "$device_tool" set-default-input "$original"
+  if [[ -n "$restore_volume" ]]; then
+    "$device_tool" set-output-volume BuiltInSpeakerDevice "$restore_volume"
+    print "  MacBook speakers restored to $("$device_tool" output-volume BuiltInSpeakerDevice)"
+  fi
 fi
 
 # 2. The default input changes mid-recording; the recording stays on its microphone.

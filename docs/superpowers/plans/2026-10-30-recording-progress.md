@@ -166,7 +166,7 @@
 - **macOS 14 相容**：以`-target arm64-apple-macosx14.0`、warnings-as-errors 編譯成功（availability checker 確認所有 macOS 15 API 都在`#available`之後）；binary `minos 14.0`，ScreenCaptureKit 只以 12.3 即有的類別與 Objective-C selector 引用，比 14 新的 Swift 符號皆為 weak import，故可在 14 載入；此 build 在本機正常執行。
 
 - **5秒內沒有完整畫面**（`make recording-acceptance` 8b）：ScreenCaptureKit 對靜止視窗也持續送畫面，沒有自然方式讓它不送，因此以測試用環境變數`SNAPPARAZZI_TEST_IGNORE_VIDEO=1`讓 record 丟棄所有畫面，其餘為正式流程：約5秒後以「No video frame within 5 seconds」exit 1，輸出與 stage 資料夾都不留下。
-- 麥克風軌同步檢查需要 MacBook 喇叭音量 ≥ 20%，否則該項標為 SKIP（不算通過）；上方的10/10結果是在外接螢幕接著、喇叭音量31%時測得，之後外接螢幕拔除、喇叭降到6%的重跑標為 SKIP。
+- 麥克風軌同步檢查在 MacBook 喇叭低於 20% 時會暫時把音量設為 30%，測完還原。外接螢幕拔除、喇叭為 6% 的狀態下重跑：10/10 嗶聲配對，offset 18～67 ms，喇叭還原為 0.0625（`make recording-microphone` 12項全過）。
 
 ## 未驗證／外部阻擋
 

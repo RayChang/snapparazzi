@@ -4,6 +4,7 @@ import CoreAudio
 // Test helper for simulating a microphone that disappears mid-recording:
 //   recording-audio-device list                       print "in|out UID name" for every device
 //   recording-audio-device output-volume UID          print the output volume (0–1) of UID
+//   recording-audio-device set-output-volume UID V    set the output volume of UID to V (0–1)
 //   recording-audio-device default-input              print the default input device UID
 //   recording-audio-device create-aggregate UID        create a public aggregate device that
 //                                                      wraps input UID; print the new UID
@@ -94,6 +95,17 @@ case (3, "output-volume"):
         }
     }
     print("1.0") // no volume control: treat as full volume
+case (4, "set-output-volume"):
+    guard let id = device(for: arguments[2]), var volume = Float32(arguments[3]) else { fail("usage: set-output-volume UID 0-1") }
+    var done = false
+    for element: UInt32 in [0, 1, 2] {
+        var property = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyVolumeScalar,
+                                                  mScope: kAudioDevicePropertyScopeOutput, mElement: element)
+        if AudioObjectSetPropertyData(id, &property, 0, nil, UInt32(MemoryLayout<Float32>.size), &volume) == noErr {
+            done = true
+        }
+    }
+    guard done else { fail("cannot set the output volume of \(arguments[2])") }
 case (2, "default-input"):
     print(uid(of: defaultInput()))
 case (3, "create-aggregate"):
