@@ -159,13 +159,13 @@
 
 - **麥克風軌音畫同步**（`make recording-microphone`）：fixture只把自己的輸出導到MacBook喇叭，暫時以MacBook麥克風為預設輸入，錄`--audio mic` 20秒：10個嗶聲全部配對，offset 23～67 ms（含喇叭輸出、空氣與麥克風延遲），<100 ms。外接螢幕麥克風聽不到同一喇叭（可能距離或降噪），故改用內建麥克風。
 - **錄影中麥克風消失**（同上）：以CoreAudio建立包住目前預設輸入的公開aggregate device並設為預設輸入，錄`--audio mic`第4秒刪除：1秒內以「麥克風已移除」停止、exit 1、保留約4.3秒可播放的檔案；結束時刪除裝置並還原原本的預設輸入。
+- **真實的麥克風權限拒絕**（2026-10-30 22:55，使用者在系統設定關閉 iTerm2 的麥克風；TCC `auth_value` 2→0）：`--audio mic`、`--audio both` 皆不再詢問、直接 exit 1 並說明如何開啟，輸出位置連父資料夾都沒有建立；同時 `--audio none` 與 `--audio system` 照常 exit 0 錄成（system 軌錄到 fixture 的 440 Hz）。測完由使用者重新開啟。
 - **麥克風權限決策**：`ensureMicrophonePermission`與`RecordCommand`的權限檢查可注入；合成測試證明 denied／restricted 直接失敗且不跳詢問、notDetermined 只詢問一次並依結果、none／system 完全不詢問麥克風、mic／both 被拒時 exit 1 且輸出位置不產生任何檔案。
 - **macOS 14 相容**：以`-target arm64-apple-macosx14.0`、warnings-as-errors 編譯成功（availability checker 確認所有 macOS 15 API 都在`#available`之後）；binary `minos 14.0`，ScreenCaptureKit 只以 12.3 即有的類別與 Objective-C selector 引用，比 14 新的 Swift 符號皆為 weak import，故可在 14 載入；此 build 在本機正常執行。
 
 ## 未驗證／外部阻擋
 
-- **真實 TCC「拒絕」對話**：要讓 AVFoundation 回報 denied，需要有人在系統詢問時按「不允許」或在系統設定關閉該 App 的麥克風；TCC 資料庫受 SIP 保護，規格也禁止清除 TCC，無法由程式自動操作。對應邏輯已以注入狀態測試（見上）。
-- **在 macOS 14 實機執行`record`走到「需要 macOS 15」分支**：本機與 CI 都是 macOS 26，沒有 macOS 14 機器或虛擬機；編譯與連結層級的證據見上。
+- **在 macOS 14 實機執行`record`走到「需要 macOS 15」分支**：本機與 CI 都是 macOS 26，沒有 macOS 14 機器；使用者選擇不安裝 macOS 14 虛擬機（需安裝 tart 並下載約 25–30 GB），以編譯與連結層級的證據（見上）為準。
 - 5秒內無畫面：無法可靠地讓 ScreenCaptureKit 不送畫面，未以實機觸發。
 - macOS 14以前執行`record`（應exit 1並提示）與舊SDK編譯：沒有舊系統，未測。
 - DRM／受保護內容、瀏覽器以外的多程序App：未測。
