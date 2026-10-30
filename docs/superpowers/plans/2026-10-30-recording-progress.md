@@ -89,6 +89,7 @@
 - `install.sh`改下載`https://codeload.github.com/RayChang/snapparazzi/tar.gz/<ref>`（實測main、`feat/recording`、SHA皆200），ref限`[A-Za-z0-9._/-]`且拒絕`..`、開頭`-`／`/`；拒絕含絕對路徑或`..`的壓縮檔成員；解壓略過最上層資料夾，檢查Makefile與main.swift存在後以同一Makefile編譯。其餘行為不變。
 - 安裝測試由7項擴充為25項：tag、含`/`的分支、含空白的安裝路徑、非法ref不呼叫curl、下載失敗／缺檔／編譯失敗皆保留舊binary、危險路徑、無暫存殘留。假curl改為回傳由工作目錄打包的壓縮檔。
 - `make clean && make test` exit 0：CLI 53／53、installer 25／25。
+- 補驗（push `3b1fe3f`後）：以新`install.sh`從GitHub實際安裝`feat/recording`到暫存目錄成功，安裝出的binary 42個基準案例逐字相同、`~/.zshrc`未改、無暫存殘留；GitHub Actions CI通過（53＋25）。需權限的路徑以拆檔前（`c8e9e14`）binary對照：`--list`輸出相同；`-w 35239 -i 1 -f png -m 640`截3.5秒後SIGINT，兩者皆exit 0、4張連號檔名、摘要相同、圖片皆640×401。
 
 ## 其他 Tasks
 
