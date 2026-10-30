@@ -58,7 +58,7 @@ make_archive() {
   local stage="${test_root}/stage-${name}"
   local top="${stage}/snapparazzi-${name}"
   mkdir -p "$top"
-  cp -R "${project_dir}/Sources" "${project_dir}/Makefile" "$top/"
+  cp -R "${project_dir}/Sources" "${project_dir}/Resources" "${project_dir}/Makefile" "$top/"
   if [[ -n "$mutate" ]]; then
     (cd "$top" && "$mutate")
   fi
@@ -115,6 +115,18 @@ assert_contains \
   "$("${install_dir}/snapparazzi" --help)" \
   "結束碼 / EXIT STATUS"
 assert_contains \
+  "installed executable embeds the microphone usage description" \
+  "$(launchctl plist __TEXT,__info_plist "${install_dir}/snapparazzi" 2>&1)" \
+  "NSMicrophoneUsageDescription"
+assert_contains \
+  "installed executable is signed with the stable identifier" \
+  "$(codesign -dv "${install_dir}/snapparazzi" 2>&1)" \
+  "Identifier=dev.snapparazzi.cli"
+assert_contains \
+  "installed executable includes record help" \
+  "$("${install_dir}/snapparazzi" record --help)" \
+  "snapparazzi record --window <id>"
+assert_contains \
   "installer reports the destination" \
   "$installer_output" \
   "${install_dir}/snapparazzi"
@@ -159,6 +171,12 @@ run_installer "$(make_archive no-makefile drop_makefile)" "main" "$old_dir"
 assert_equal "archives missing files fail" "1" "$installer_status"
 assert_contains "missing files are explained" "$installer_output" "does not look like Snapparazzi"
 assert_equal "archives missing files keep the old binary" "old-snapparazzi" "$("${old_dir}/snapparazzi")"
+
+# 5b. An archive without Info.plist is rejected (the binary must embed it).
+drop_plist() { rm -r Resources; }
+run_installer "$(make_archive no-plist drop_plist)" "main" "$old_dir"
+assert_equal "archives without Info.plist fail" "1" "$installer_status"
+assert_equal "archives without Info.plist keep the old binary" "old-snapparazzi" "$("${old_dir}/snapparazzi")"
 
 # 6. A compile failure keeps the existing binary.
 break_swift() { print 'this is not swift' >> Sources/Snapparazzi/main.swift; }

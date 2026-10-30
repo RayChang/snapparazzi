@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>dev.snapparazzi.cli</string>
+  <key>CFBundleName</key><string>Snapparazzi</string>
+  <key>CFBundleShortVersionString</key><string>1.1.0</string>
+  <key>CFBundleVersion</key><string>1.1.0</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Snapparazzi 在 record --audio mic 或 both 時錄製麥克風聲音。Snapparazzi records the microphone for record --audio mic or both.</string>
+</dict>
+</plist>

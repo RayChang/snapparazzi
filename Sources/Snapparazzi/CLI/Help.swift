@@ -1,5 +1,3 @@
-let snapparazziVersion = "1.1.0"
-
 let helpText = """
 Snapparazzi — a polite paparazzo for your macOS windows.
 Snapparazzi — 專門定時捕捉 macOS 視窗的 CLI 工具。

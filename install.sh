@@ -78,7 +78,8 @@ if printf '%s\n' "$members" | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
 fi
 mkdir "$source_dir"
 tar -xzf "$archive" -C "$source_dir" --strip-components 1 || fail "cannot extract source archive / 無法解壓原始碼"
-[ -f "$source_dir/Makefile" ] && [ -f "$source_dir/Sources/Snapparazzi/main.swift" ] || \
+[ -f "$source_dir/Makefile" ] && [ -f "$source_dir/Sources/Snapparazzi/main.swift" ] && \
+  [ -f "$source_dir/Resources/Info.plist" ] || \
   fail "downloaded source does not look like Snapparazzi (bad SNAPPARAZZI_REF?)"
 
 say "Building native macOS executable…"
