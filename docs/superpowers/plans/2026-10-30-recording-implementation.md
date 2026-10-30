@@ -257,7 +257,7 @@ protocol RecordingSink {
 - [ ] 以正確output types加入screen、system audio、mic，明確持有delegate/output物件，避免start後被釋放。
 - [ ] callback先檢查sample valid、screen frame status，再經有界adapter傳遞；保留buffer直到消費完，不能存不安全的borrowed指標。
 - [ ] delegate fatal event轉成一次engine failure；start部分成功後失敗也要解除已加output／stop資源。
-- [ ] 最小化以frame status `suspended`判斷，切換Space不需處理（Task 0實測）；close以全視窗清單＋PID判斷（行為待Task 0補測），不以沒有callback判斷關閉；監控間隔250ms，費用需測量。
+- [ ] 最小化以frame status `suspended`判斷，切換Space不需處理（Task 0實測）；close以SCK `didStopWithError` -3815判斷（Task 0實測），不以沒有callback判斷關閉，不需輪詢視窗清單。
 - [ ] stop與callbacks barrier按Task0結果實作，測試fake late callbacks；不能將stop函式返回視為所有自己排出的queue work也完成。
 
 **完成條件：** Mac probe改用正式adapter可以取得正確三種source；沒有main queue blocking、無界Tasks或跨queue state競爭。

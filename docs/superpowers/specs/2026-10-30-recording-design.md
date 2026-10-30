@@ -165,7 +165,7 @@ flowchart TD
 - 黑畫面使用一個預先建立、固定 W×H 的 buffer 重複送出；不需要 CIContext 或額外 pixel pool。
 - 排程器在相同畫面／idle 時重用最近畫面，維持目標 fps。負載過高只跳過已過期的幀槽，計數並保留實際時間，不能靠重新連續編號把影片加速。
 - 最小化：SCK 送出一張 `suspended` 狀態畫面後不再有 screen callback，以此判定暫時不可見；最多保留最後畫面 1 秒，接著輸出黑畫面，audio 繼續；收到 `complete` 即恢復。切換到其他 Space 時 SCK 持續送真實畫面，照常錄製，不視為不可見（Task 0 實測，macOS 26.5）。
-- 視窗確定關閉、owner PID 消失、stream fatal error：停止並保留可完成的片段，exit 1；不自動挑另一個視窗。CG 全視窗資訊與可見視窗資訊分開判斷，不能把 minimize 當 close。
+- 視窗確定關閉、owner PID 消失、stream fatal error：停止並保留可完成的片段，exit 1；不自動挑另一個視窗。關閉視窗時 SCK 先送 `suspended`（同最小化），約 0.1 秒內以 `didStopWithError` -3815（`noCaptureSource`）回報，以此判定關閉，不需輪詢視窗清單（Task 0 實測）。非 `complete` 畫面的 PTS 不可用於時間軸。
 
 ### 5.2 音訊
 
