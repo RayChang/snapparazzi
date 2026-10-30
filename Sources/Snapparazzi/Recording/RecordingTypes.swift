@@ -51,6 +51,8 @@ struct AudioTrackStats {
     var buffers = 0
     var paddedSamples: Int64 = 0
     var trimmedSamples: Int64 = 0
+    var driftCorrection: Int64 = 0  // frames inserted (+) or dropped (-) to follow the device clock
+    var drift = 0.0                 // last estimate of how far timestamps lagged real time (s)
 }
 
 struct RecordingStats {

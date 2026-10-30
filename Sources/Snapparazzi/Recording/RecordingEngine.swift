@@ -196,6 +196,8 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private var announced = false
     private var startUptime = 0.0
     private var lastDiskCheck = 0.0
+    private var lastMicrophoneCheck = 0.0
+    private let microphoneID: String?
     private var stopContinuation: CheckedContinuation<Void, Never>?
     private var stopRequested = false
 
@@ -205,6 +207,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         self.session = session
         self.signals = signals
         self.filter = filter
+        self.microphoneID = microphoneID
         var sources: [AudioSource] = []
         if options.audio.capturesSystem { sources.append(.system) }
         if options.audio.capturesMicrophone { sources.append(.microphone) }
@@ -306,6 +309,14 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             announced = true
             print("錄影中，按 Ctrl-C 停止 / Recording… press Ctrl-C to stop.")
         }
+        // The microphone chosen at start must still exist; a removed device is an
+        // error rather than a silently silent track. (A new OS default is ignored.)
+        if let microphoneID, uptime() - lastMicrophoneCheck >= 1 {
+            lastMicrophoneCheck = uptime()
+            if AVCaptureDevice(uniqueID: microphoneID) == nil {
+                stopOnQueue(.failure("麥克風已移除 / The microphone was disconnected"))
+            }
+        }
         if uptime() - lastDiskCheck >= 5 {
             lastDiskCheck = uptime()
             if let available = RecordingSession.availableCapacity(for: session.finalURL),
@@ -356,9 +367,9 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
                     break
                 }
             case .audio:
-                try pipeline.audio(sampleBuffer, from: .system)
+                try pipeline.audio(sampleBuffer, from: .system, arrival: hostNow())
             case .microphone:
-                try pipeline.audio(sampleBuffer, from: .microphone)
+                try pipeline.audio(sampleBuffer, from: .microphone, arrival: hostNow())
             @unknown default:
                 break
             }
@@ -493,7 +504,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         for source in AudioSource.allCases {
             guard let audio = stats.audio[source] else { continue }
             let rate = Double(recordingSampleRate)
-            lines.append("    \(source.rawValue): buffers \(audio.buffers)，補靜音 / padded \(String(format: "%.2f", Double(audio.paddedSamples) / rate)) s，裁掉 / trimmed \(String(format: "%.3f", Double(audio.trimmedSamples) / rate)) s")
+            lines.append("    \(source.rawValue): buffers \(audio.buffers)，補靜音 / padded \(String(format: "%.2f", Double(audio.paddedSamples) / rate)) s，裁掉 / trimmed \(String(format: "%.3f", Double(audio.trimmedSamples) / rate)) s，時鐘偏移 / clock drift \(String(format: "%+.1f", audio.drift * 1000)) ms（補償 / corrected \(audio.driftCorrection) samples）")
             if audio.buffers == 0 {
                 lines.append("    警告：沒有收到任何 \(source.rawValue) 音訊資料，這條音軌是靜音 / Warning: no \(source.rawValue) audio arrived; this track is silent.")
             }

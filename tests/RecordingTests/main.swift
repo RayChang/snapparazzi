@@ -162,6 +162,31 @@ cases.append(("endpoint clips audio and video exactly", {
     check(abs(pcm.count / 2 - 84_000) <= 1_024, "audio is 1.75 s (84000 samples ± one AAC frame), got \(pcm.count / 2)")
 }))
 
+// A device clock 1000 ppm slow (or fast) puts its timestamps 18 ms off real time after
+// 18 s. The marker switches frequency at real time 18 s and must land there.
+for (label, error) in [("slow", -0.001), ("fast", 0.001)] {
+    cases.append(("mic clock \(label) by 1000 ppm: audio follows real time", {
+        let url = temporaryDirectory().appendingPathComponent("drift-\(label).mp4")
+        let result = try await simulate(url: url, fileType: .mp4, duration: 20, audio: [
+            SimulatedAudio(source: .microphone, frequency: 440, channels: 1, interleaved: true,
+                           start: 0.3, latency: 0.02, chunkFrames: 512, clockError: error,
+                           switchFrequency: (to: 1000, atRealTime: 18))
+        ])
+        let pcm = try await decodeStereo48k(url)
+        // Tracking lags about one 2 s window plus the 1 ms deadband (a few ms at this
+        // exaggerated rate, under 1 ms at a real ~90 ppm); 9 ms is half the uncorrected error.
+        near(toneOnset(pcm, frequency: 1000, from: 17.8, to: 18.2, steady: 0.5) ?? -1, 18, 0.009,
+             "marker at real time 18 s (uncorrected it would be \(error < 0 ? "18 ms early" : "18 ms late"))")
+        let audio = result.audio[.microphone]
+        near(Double(audio?.driftCorrection ?? 0) / 48_000, error < 0 ? 0.018 : -0.018, 0.006, "about 18 ms corrected")
+        check((audio?.trimmedSamples ?? 0) == 0, "no audio dropped (\(audio?.trimmedSamples ?? 0) samples)")
+        check((audio?.paddedSamples ?? 0) < 48_000 / 2, "only start-up silence padded (\(audio?.paddedSamples ?? 0) samples)")
+        // The device's 440 Hz is really 440 × (1 + error) Hz in real time, which is what a
+        // corrected track plays; a 0.5 s window (2 Hz wide) measures it.
+        near(toneAmplitude(pcm, channel: 0, start: 5, length: 0.5, frequency: 440 * (1 + error)), 0.5, 0.05, "tone level unaffected by corrections")
+    }))
+}
+
 cases.append(("session: preflight, exclusive commit, cleanup", {
     let directory = temporaryDirectory()
     let existing = directory.appendingPathComponent("taken.mp4")

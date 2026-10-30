@@ -51,8 +51,14 @@ struct RecordingSession {
             guard parent.path != probe.path else { return nil }
             probe = parent
         }
-        let values = try? probe.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-        return values?.volumeAvailableCapacityForImportantUsage
+        // "Important usage" also counts purgeable space but is 0 on some volumes (disk
+        // images, some external drives), so take the larger of it and the plain figure.
+        let values = try? probe.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey,
+                                                          .volumeAvailableCapacityKey])
+        let important = values?.volumeAvailableCapacityForImportantUsage
+        let plain = values?.volumeAvailableCapacity.map(Int64.init)
+        guard important != nil || plain != nil else { return nil }
+        return max(important ?? 0, plain ?? 0)
     }
 
     // Creates missing parents and the private staging folder (after permissions).

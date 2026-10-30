@@ -33,13 +33,20 @@ func makeFrame(red: UInt8, green: UInt8, blue: UInt8) -> CVPixelBuffer {
 // A Float32 tone buffer in the given layout, phase-continuous across chunks.
 func makeTone(frequency: Double, amplitude: Float, sampleRate: Double, channels: UInt32,
               interleaved: Bool, firstFrame: Int, frames: Int, pts: CMTime) -> CMSampleBuffer {
+    makeTone(frequencyAt: { _ in frequency }, amplitude: amplitude, sampleRate: sampleRate, channels: channels,
+             interleaved: interleaved, firstFrame: firstFrame, frames: frames, pts: pts)
+}
+
+// `frequencyAt` takes the source's sample index, so a tone can change at a chosen sample.
+func makeTone(frequencyAt: (Int) -> Double, amplitude: Float, sampleRate: Double, channels: UInt32,
+              interleaved: Bool, firstFrame: Int, frames: Int, pts: CMTime) -> CMSampleBuffer {
     let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: sampleRate,
                                channels: channels, interleaved: interleaved)!
     let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames))!
     pcm.frameLength = AVAudioFrameCount(frames)
     let data = pcm.floatChannelData!
     for index in 0..<frames {
-        let value = amplitude * Float(sin(2 * Double.pi * frequency * Double(firstFrame + index) / sampleRate))
+        let value = amplitude * Float(sin(2 * Double.pi * frequencyAt(firstFrame + index) * Double(firstFrame + index) / sampleRate))
         for channel in 0..<Int(channels) {
             if interleaved { data[0][index * Int(channels) + channel] = value } else { data[channel][index] = value }
         }
@@ -73,6 +80,10 @@ struct SimulatedAudio {
     var latency = 0.06                    // delivered this long after their PTS
     var chunkFrames = 960
     var duplicateChunk: Int?              // deliver this chunk twice
+    // Device clock error, e.g. -0.001 = 1000 ppm slow: timestamps count samples at the
+    // nominal rate, but the samples really arrive at sampleRate × (1 + clockError).
+    var clockError = 0.0
+    var switchFrequency: (to: Double, atRealTime: Double)?
 }
 
 enum SimulatedScreen {
@@ -109,17 +120,25 @@ func simulate(url: URL, fileType: AVFileType, fps: Int = 30, codec: VideoCodec =
             while true {
                 let chunk = nextChunk[index]
                 let first = chunk * source.chunkFrames
-                let start = source.start + Double(first) / source.sampleRate
-                guard start + Double(source.chunkFrames) / source.sampleRate + source.latency <= now else { break }
+                let start = source.start + Double(first) / source.sampleRate  // timestamp (device clock)
+                let realRate = source.sampleRate * (1 + source.clockError)
+                let realEnd = source.start + Double(first + source.chunkFrames) / realRate
+                guard realEnd + source.latency <= now else { break }
                 nextChunk[index] += 1
                 if source.gaps.contains(where: { $0.contains(start) }) { continue }
                 let times = source.duplicateChunk == chunk ? 2 : 1
+                let switchSample = source.switchFrequency.map { Int(($0.atRealTime - source.start) * realRate) }
                 for _ in 0..<times {
-                    let buffer = makeTone(frequency: source.frequency, amplitude: source.amplitude,
-                                          sampleRate: source.sampleRate, channels: source.channels,
-                                          interleaved: source.interleaved, firstFrame: first,
-                                          frames: source.chunkFrames, pts: host(start))
-                    try pipeline.audio(buffer, from: source.source)
+                    let buffer = makeTone(frequencyAt: { sample in
+                                              if let switchSample, let target = source.switchFrequency, sample >= switchSample {
+                                                  return target.to
+                                              }
+                                              return source.frequency
+                                          },
+                                          amplitude: source.amplitude, sampleRate: source.sampleRate,
+                                          channels: source.channels, interleaved: source.interleaved,
+                                          firstFrame: first, frames: source.chunkFrames, pts: host(start))
+                    try pipeline.audio(buffer, from: source.source, arrival: host(now))
                 }
             }
         }

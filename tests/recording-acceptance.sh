@@ -210,6 +210,7 @@ if hdiutil create -size 700m -fs APFS -volname SnapparazziTest "$dmg" >/dev/null
   exit_code=$?
   check "disk preflight: exit 1 without --duration on a small volume" "$(( exit_code == 1 ))"
   check "disk preflight: explains the space needed" "$(grep -q 'Not enough disk space' "$work/disk-preflight.out" && print 1 || print 0)"
+  check "disk preflight: sees the volume's real free space (not 0)" "$(grep -q ' 0 MiB available' "$work/disk-preflight.out" && print 0 || print 1)"
   check "disk preflight: creates nothing" "$([[ -z "$(print -l "$volume"/*.mp4(N) "$volume"/.*.snapparazzi-*(N))" ]] && print 1 || print 0)"
   "$binary" record -w "$window_id" --duration 30 -o "$volume/low.mp4" > "$work/disk-low.out" 2>&1 &
   record_pid=$!

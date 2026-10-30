@@ -93,6 +93,16 @@ value() { awk -v key="$1" '$1 == key {print $2}' "$work/report.txt"; }
 check "length is ${duration} s" "$(python3 -I -c "print(int(abs(float('$(value duration)') - $duration) < 0.05))")"
 check "at least 99% of $((duration * 30)) frames" "$(python3 -I -c "print(int(int('$(value frames)') >= 0.99 * $duration * 30))")"
 check "A/V offset under 100 ms in the first and last minute" "$(python3 -I -c "print(int(float('$(value max_abs_offset_ms)') < 100))")"
+# Each audio track may pad silence only at start-up and must not drop real audio: a
+# microphone whose clock drifts (a USB mic measured ~90 ppm slow) once lost 13 minutes
+# of an hour to padding before drift tracking was added.
+for source in system microphone; do
+  line="$(grep -E "^ +${source}: buffers" "$work/record.out")"
+  padded="$(print -r -- "$line" | sed -E 's/.*padded ([0-9.]+) s.*/\1/')"
+  trimmed="$(print -r -- "$line" | sed -E 's/.*trimmed ([0-9.]+) s.*/\1/')"
+  check "${source}: padded ${padded:-?} s (< 2 s) and dropped ${trimmed:-?} s (< 1 s)" \
+    "$(python3 -I -c "print(int(float('${padded:-99}') < 2 and float('${trimmed:-99}') < 1))")"
+done
 check "memory levels off (end RSS ≤ 1.5 × RSS at 5 min + 50 MiB)" \
   "$(awk '$1 == "rss_mib_at_baseline" {print ($4 <= $2 * 1.5 + 50) ? 1 : 0}' "$work/report.txt")"
 

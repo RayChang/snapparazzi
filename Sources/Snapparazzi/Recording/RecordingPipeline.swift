@@ -14,6 +14,10 @@ import CoreVideo
 // - Each audio source is converted to 48 kHz stereo and written at a sample cursor.
 //   A gap is filled with silence, an overlap is trimmed, and a source that falls
 //   more than `audioWatermark` behind the clock is padded with silence.
+// - A device whose clock runs slightly slow or fast (a USB microphone measured
+//   ~90 ppm slow: its timestamps fell 0.3 s behind real time per hour) is followed
+//   by watching the floor of (arrival time - timestamp). That drift moves where the
+//   audio belongs, and single samples are inserted or dropped to keep it there.
 //
 // Not thread-safe: every method must be called on the same serial queue.
 final class RecordingPipeline {
@@ -22,6 +26,9 @@ final class RecordingPipeline {
     static let pendingAudioLimit = Int64(recordingSampleRate) // one second
     static let blackAfterSuspend = 1.0
     static let continuityTolerance = Int64(recordingSampleRate / 100) // 10 ms
+    static let driftWindow = 2.0                                       // seconds per latency-floor sample
+    static let driftStepLimit = 0.002                                  // at most 2 ms of drift change per window
+    static let driftDeadband = Int64(recordingSampleRate / 1000)      // ignore errors under 1 ms
 
     let fps: Int32
     let writer: StageWriter
@@ -41,6 +48,11 @@ final class RecordingPipeline {
         var pendingSamples: Int64 = 0
         var preStart: [CMSampleBuffer] = []
         var stats = AudioTrackStats()
+        // Clock drift: how far this source's timestamps lag real time (seconds).
+        var latencyBase: Double?
+        var windowMinimum = Double.infinity
+        var windowStart: Double?
+        var drift = 0.0
     }
 
     init(fps: Int, writer: StageWriter, audioSources: [AudioSource]) throws {
@@ -97,13 +109,13 @@ final class RecordingPipeline {
         }
     }
 
-    // The epsilon keeps 0.1 s × 30 (= 2.9999…) on slot 3 instead of falling back to slot 2.
     // Session time of the middle of the next video slot. Ticking there keeps timer
     // jitter far from slot boundaries, so no tick lands two slots at once.
     var nextTickSeconds: Double? {
         t0 == nil ? nil : (Double(nextSlot) + 0.5) / Double(fps)
     }
 
+    // The epsilon keeps 0.1 s × 30 (= 2.9999…) on slot 3 instead of falling back to slot 2.
     private func slot(at seconds: Double) -> Int64 {
         Int64((seconds * Double(fps) + 1e-6).rounded(.down))
     }
@@ -121,9 +133,12 @@ final class RecordingPipeline {
 
     // MARK: Audio
 
-    func audio(_ sampleBuffer: CMSampleBuffer, from source: AudioSource) throws {
+    // `arrival` is the host time the buffer was delivered; it lets the pipeline
+    // follow a device clock that drifts from the host clock.
+    func audio(_ sampleBuffer: CMSampleBuffer, from source: AudioSource, arrival: CMTime? = nil) throws {
         guard let track = tracks[source] else { return }
         track.stats.buffers += 1
+        if let arrival { trackDrift(track, sampleBuffer, arrival: arrival) }
         guard t0 != nil else {
             // Keep at most ~250 ms of audio that arrives before the first frame.
             track.preStart.append(sampleBuffer)
@@ -140,6 +155,31 @@ final class RecordingPipeline {
         try drain(track, source: source)
     }
 
+    // Updates the drift estimate from the minimum latency of each 2 s window, measured
+    // against the first window. Minimums ignore delivery jitter; the step limit keeps
+    // one slow window from moving the audio by more than 2 ms (up to 1000 ppm still
+    // keeps up).
+    private func trackDrift(_ track: AudioTrack, _ sampleBuffer: CMSampleBuffer, arrival: CMTime) {
+        guard let now = sessionSeconds(arrival),
+              let rate = AudioNormalizer.format(of: sampleBuffer)?.sampleRate, rate > 0 else { return }
+        let end = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer))
+            + Double(CMSampleBufferGetNumSamples(sampleBuffer)) / rate
+        guard let endSession = sessionSeconds(CMTime(seconds: end, preferredTimescale: 1_000_000_000)) else { return }
+        track.windowMinimum = min(track.windowMinimum, now - endSession)
+        let start = track.windowStart ?? now
+        track.windowStart = start
+        guard now - start >= RecordingPipeline.driftWindow else { return }
+        if let base = track.latencyBase {
+            let step = (track.windowMinimum - base) - track.drift
+            track.drift += min(max(step, -RecordingPipeline.driftStepLimit), RecordingPipeline.driftStepLimit)
+            track.stats.drift = track.drift
+        } else {
+            track.latencyBase = track.windowMinimum
+        }
+        track.windowMinimum = .infinity
+        track.windowStart = now
+    }
+
     private func place(_ sampleBuffer: CMSampleBuffer, on track: AudioTrack, source: AudioSource) throws {
         guard let t0, let format = AudioNormalizer.format(of: sampleBuffer) else { return }
         if track.normalizer == nil || track.normalizer?.inputFormat != format {
@@ -148,6 +188,7 @@ final class RecordingPipeline {
         }
         guard let normalizer = track.normalizer else { return }
         let start = CMTimeGetSeconds(CMTimeSubtract(CMSampleBufferGetPresentationTimeStamp(sampleBuffer), t0))
+            + track.drift
         let position = Int64((start * Double(recordingSampleRate)).rounded())
         if position - track.cursor > RecordingPipeline.continuityTolerance {
             // A gap: finish the previous segment, then fill the gap with silence.
@@ -161,8 +202,28 @@ final class RecordingPipeline {
             let drop = min(Int(overlap) * recordingChannels, samples.count)
             samples.removeFirst(drop)
             track.stats.trimmedSamples += Int64(drop / recordingChannels)
+        } else {
+            nudge(&samples, error: position - track.cursor, track: track)
         }
         try write(samples, to: track, source: source)
+    }
+
+    // Small, continuous correction: when the cursor is more than 1 ms from where the
+    // audio belongs, insert (average of neighbours) or drop one frame in this buffer.
+    private func nudge(_ samples: inout [Float], error: Int64, track: AudioTrack) {
+        let frames = samples.count / recordingChannels
+        guard abs(error) > RecordingPipeline.driftDeadband, frames > 2 else { return }
+        let middle = frames / 2 * recordingChannels
+        if error > 0 {
+            let inserted = (0..<recordingChannels).map {
+                (samples[middle - recordingChannels + $0] + samples[middle + $0]) / 2
+            }
+            samples.insert(contentsOf: inserted, at: middle)
+            track.stats.driftCorrection += 1
+        } else {
+            samples.removeSubrange(middle..<(middle + recordingChannels))
+            track.stats.driftCorrection -= 1
+        }
     }
 
     private func pad(_ track: AudioTrack, source: AudioSource, to requested: Int64) throws {
