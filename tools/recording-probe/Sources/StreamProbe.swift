@@ -35,6 +35,11 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
     // Complete screen frames split by SCK's dirtyRects attachment: "unchanged"
     // means SCK reported no changed region, "missing" means no attachment.
     private var screenDirty: [String: Int] = [:]
+    // Per-frame dirty area as a fraction of the canvas (rects may overlap).
+    private var dirtyFractionMin = Double.infinity
+    private var dirtyFractionMax = 0.0
+    private var dirtyFractionSum = 0.0
+    private let canvasArea: Double
 
     init(options: CaptureOptions, window: SCWindow, microphoneID: String?) throws {
         self.options = options
@@ -51,6 +56,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
         let factor = min(1, 1280 / max(sourceWidth, sourceHeight))
         let width = max(2, Int(sourceWidth * factor) / 2 * 2)
         let height = max(2, Int(sourceHeight * factor) / 2 * 2)
+        canvasArea = Double(width * height)
         writer = try AVAssetWriter(outputURL: options.output, fileType: .mov)
         let codec: AVVideoCodecType = options.codec == "h264" ? .h264 : .hevc
         video = AVAssetWriterInput(mediaType: .video, outputSettings: [
@@ -189,7 +195,13 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
                                      ("scale_factor", .scaleFactor)] {
                     metadata[label] = String(describing: frame[key] ?? NSNull())
                 }
-                metadata["dirty_rects"] = (frame[.dirtyRects] as? [Any])?.count as Any? ?? NSNull()
+                metadata["dirty_rects"] = (frame[.dirtyRects] as? [Any]).map { rects in
+                    rects.map { rect -> String in
+                        guard let dict = rect as? NSDictionary,
+                              let r = CGRect(dictionaryRepresentation: dict) else { return "?" }
+                        return "\(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height))"
+                    }
+                } as Any? ?? NSNull()
             }
             emit(metadata)
         }
@@ -204,6 +216,15 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             let dirtyKey: String
             if let rects = attachments.first?[.dirtyRects] as? [Any] {
                 dirtyKey = rects.isEmpty ? "unchanged" : "changed"
+                let area = rects.reduce(0.0) { sum, rect in
+                    guard let dict = rect as? NSDictionary,
+                          let r = CGRect(dictionaryRepresentation: dict) else { return sum }
+                    return sum + Double(r.width * r.height)
+                }
+                let fraction = area / canvasArea
+                dirtyFractionMin = min(dirtyFractionMin, fraction)
+                dirtyFractionMax = max(dirtyFractionMax, fraction)
+                dirtyFractionSum += fraction
             } else { dirtyKey = "missing" }
             screenDirty[dirtyKey, default: 0] += 1
             if epoch == nil {
@@ -247,6 +268,13 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
         } catch { fail(error.localizedDescription) }
     }
 
+    private func dirtyAreaSummary() -> Any {
+        let frames = screenDirty["changed", default: 0] + screenDirty["unchanged", default: 0]
+        guard frames > 0 else { return NSNull() }
+        return ["min": dirtyFractionMin, "max": dirtyFractionMax,
+                "mean": dirtyFractionSum / Double(frames)]
+    }
+
     func finish() async -> Bool {
         requestStop()
         do { try await stream?.stopCapture() }
@@ -279,6 +307,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             emit(["event": "capture_result", "writer_completed": writer.status == .completed,
                   "success": complete, "seen": seen, "written": written, "dropped": dropped,
                   "screen_dirty": screenDirty,
+                  "screen_dirty_area_fraction": dirtyAreaSummary(),
                   "error": (failure ?? writer.error?.localizedDescription) as Any? ?? NSNull(),
                   "output": options.output.path,
                   "note": "Completion does not prove App isolation, audible audio, or synchronization."])

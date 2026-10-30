@@ -72,7 +72,7 @@ mic/both 才請求 microphone permission，固定開始時的預設裝置 unique
 | configured | 目標 ID/PID、source backing pixels、1280px 以內的固定畫布、codec/audio mode |
 | sample | 每來源前8個buffer的原始PTS、host clock、duration、samples；audio的實際ASBD取樣率／聲道數；screen狀態與幾何附件 |
 | epoch | 第一個完整video的sourcePTS；三來源都減同一epoch，不各自歸零 |
-| capture_result | 每來源seen/written、丟棄原因（含超過終點的`*_after_endpoint`）、`screen_dirty`（完整畫面依dirtyRects分為changed／unchanged／missing）、writer完成／error；不能只看success就宣稱scope與sync通過 |
+| capture_result | 每來源seen/written、丟棄原因（含超過終點的`*_after_endpoint`）、`screen_dirty`（完整畫面依dirtyRects分為changed／unchanged／missing）與`screen_dirty_area_fraction`（每張dirty面積／畫布，min／max／mean）、writer完成／error；不能只看success就宣稱scope與sync通過 |
 | inspection | 全檔decode完成、每軌codec／大小／first/last PTS、audio RMS與peak |
 
 none應1video、0audio；system/mic應1video、1audio；both此階段是1video、**2條獨立audio tracks**。預期音源完全沒有written buffers、要求的track消失、或已知有聲來源RMS為0，都需要診斷；合法安靜與擷取錯誤分開記錄。能量不是音源歸屬證據。

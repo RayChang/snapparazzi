@@ -37,23 +37,23 @@
 | 同App其他視窗 | 錄無聲的Chrome視窗A、另一Chrome視窗B播YouTube：RMS 0.033；暫停B後RMS 0（peak 0）。→ **同App其他視窗聲音會被錄入**，與規格3.3的預告一致 |
 | 安靜時的音訊 | 目標App完全無聲時仍持續收到buffer（10秒492個），內容為0；靜音不等於資料缺口 |
 | 畫面縮放 | `config.width/height`與視窗比例不同時，SCK等比例縮入畫布並以`contentRect`／`contentScale`回報實際內容（例：1440×843→畫布1280×748，內容約1277.7×748，scale≈0.887） |
-| 靜止畫面 | 行事曆完全不動仍收到約28fps的`complete`畫面；解碼後1秒後的247張中僅18張差值>20（多為編碼雜訊），YouTube播放中則263／264。→ macOS 26.5上靜止內容仍按設定頻率送`complete`畫面。probe已加`dirtyRects`統計（`screen_dirty`）待確認 |
+| 靜止畫面 | 行事曆完全不動仍收到約28fps的`complete`畫面；解碼後1秒後的247張中僅18張差值>20（多為編碼雜訊），YouTube播放中則263／264。→ macOS 26.5上靜止內容仍按設定頻率送`complete`畫面 |
+| dirtyRects | 同一靜止視窗：首張為`0,0 0x0`，其後每張皆為一個`0,0 1279x962`（＝contentRect，單位為輸出畫布像素）；面積比例mean 0.996／max 0.999。→ **單窗模式下SCK每張都把整個內容標為dirty，不做變動偵測**；dirtyRects不能用來判斷靜止或省略編碼。probe的`screen_dirty`只看陣列是否為空，零面積首張被計為changed |
 | 媒體檢查 | 所有短片exit 0、writer completed、完整解碼；none為1 video、system為1 video＋1 AAC |
 
 對規格／計畫的影響：
 
 - Task 5／10：SCK使用前必須初始化CoreGraphics（見上）。
 - Task 7／8／13與驗證手冊：延遲音軌的檢查依「讀回時的offset」一列，不能以解碼first PTS判斷。
-- Task 9：ticker仍需要（規格不依賴callback），但實務上很少需重複畫面；靜止畫面也持續耗用編碼資源，L4效能需計入。
+- Task 9：ticker仍需要（規格不依賴callback），但實務上很少需重複畫面；靜止畫面也持續耗用編碼資源，L4效能需計入。不得依dirtyRects跳過編碼或判斷視窗可見性。
 - help／README：明寫同App其他視窗聲音會錄入。
 
 接續工作：
 
-1. 用新版probe重錄一段靜止視窗，確認`screen_dirty`是否顯示SCK在送未變動的畫面。
-2. mic授權（首次／拒絕／重新允許）、`mic`與`both`、HEVC、Ctrl-C收尾。
-3. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
-4. 合成fixture、雙AAC混音與壓縮video passthrough；驗證H264/HEVC及延遲音軌。
-5. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
+1. mic授權（首次／拒絕／重新允許）、`mic`與`both`、HEVC、Ctrl-C收尾。
+2. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
+3. 合成fixture、雙AAC混音與壓縮video passthrough；驗證H264/HEVC及延遲音軌。
+4. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
 
 ## Task 1：使用者已回報的本地基準
 
