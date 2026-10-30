@@ -105,7 +105,7 @@ func inspect(_ url: URL) async throws {
           "duration": seconds(duration) as Any? ?? NSNull(), "tracks": reports])
 }
 
-private func fourCC(_ value: FourCharCode) -> String {
+func fourCC(_ value: FourCharCode) -> String {
     let bytes = [UInt8((value >> 24) & 255), UInt8((value >> 16) & 255),
                  UInt8((value >> 8) & 255), UInt8(value & 255)]
     return String(bytes: bytes, encoding: .ascii) ?? String(value)

@@ -17,6 +17,7 @@ xcrun --sdk macosx swiftc \
   "$probe_dir/Sources/Options.swift" \
   "$probe_dir/Sources/StreamProbe.swift" \
   "$probe_dir/Sources/Inspect.swift" \
+  "$probe_dir/Sources/MixProbe.swift" \
   "$probe_dir/Sources/ProbeMain.swift" \
   -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist \
   -Xlinker "$probe_dir/Info.plist" \

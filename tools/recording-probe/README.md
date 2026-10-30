@@ -1,6 +1,6 @@
 # Task 0：獨立錄影驗證工具
 
-**目前狀態：已在 macOS 26.5.2 編譯並完成部分實測（none／system／mic／both、h264／hevc、SIGINT／SIGTERM、App 範圍、時鐘），結果見[開發交接](../../docs/superpowers/plans/2026-10-30-recording-progress.md)；Retina、resize、mic 拒絕等仍待測。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
+**目前狀態：已在 macOS 26.5.2 編譯並完成部分實測（none／system／mic／both、h264／hevc、SIGINT／SIGTERM、App 範圍、時鐘、混音 passthrough），結果見[開發交接](../../docs/superpowers/plans/2026-10-30-recording-progress.md)；Retina、resize、mic 拒絕等仍待測。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
 
 此工具先驗證單一 SCStream 的畫面／App audio／microphone 回呼、原始格式與 PTS，以及 AVAssetWriter 的短片寫入。使用 ScreenCaptureKit 單視窗 filter；**音訊是否確實限定目標 App 必須實測，不能由 filter 名稱推論。**
 
@@ -77,7 +77,7 @@ mic/both 才請求 microphone permission，固定開始時的預設裝置 unique
 
 none應1video、0audio；system/mic應1video、1audio；both此階段是1video、**2條獨立audio tracks**。預期音源完全沒有written buffers、要求的track消失、或已知有聲來源RMS為0，都需要診斷；合法安靜與擷取錯誤分開記錄。能量不是音源歸屬證據。
 
-**both MOV只是diagnostic stage，不是規格要求的單音軌MP4。** 不以播放器只播其中一軌當成混音成功；兩音源離線混合與passthrough將在下一個probe增量驗證。
+**both MOV只是diagnostic stage，不是規格要求的單音軌MP4。** 不以播放器只播其中一軌當成混音成功；混成單音軌MP4見第6節。
 
 ## 4. App 範圍與短片同步
 
@@ -98,9 +98,18 @@ echo $?
 
 另開一個60秒capture，在數秒後按Ctrl-C，確認JSON有capture_result/inspection且檔案可完整解碼。signal handler只送停止請求；stopCapture後經serial queue barrier封閉來源，再finish writer。實際SDK的callback收尾語意仍待Mac輸出驗證；不能將此程式存在當成已證明。
 
-## 6. 目前刻意未實作的項目
+## 6. 混音與 passthrough
 
-- 離線雙音源混音、H.264/HEVC compressed passthrough成單音軌MP4。
+```sh
+"$probeBinary" mix-test --codec h264 --dir "$probeResults"   # 合成fixture→混音→自動檢查，失敗exit 1
+"$probeBinary" mix-test --codec hevc --dir "$probeResults"
+"$probeBinary" mix "$probeResults/both.mov" "$probeResults/both-mixed.mp4"
+```
+
+`mix-test`產生4秒fixture（440Hz 48k stereo從0秒、880Hz 44.1k mono從0.5秒），依規格第6節混音，檢查：1 video＋1 AAC 48k stereo、壓縮影片bytes與播放時間不變、各音調音量＝0.25、880Hz起點0.5秒。`mix`對實錄MOV做同樣混音並比對影片。
+
+## 7. 目前刻意未實作的項目
+
 - 合成fixture、延遲500ms音軌／44.1k mono連續轉換與sample級音訊裁切。
 - 靜態frame ticker、來源缺口補零、resize/Space/minimize的正式畫布處理與可見性監控。
 - 一小時效能／漂移、裝置拔除策略、舊macOS載入／weak linking。

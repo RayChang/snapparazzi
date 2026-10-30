@@ -32,7 +32,7 @@
 | 畫面時鐘 | screen PTS與`CMClockGetHostTimeClock`同域，PTS比callback抵達早約0.5～6ms |
 | App音訊時鐘 | 48kHz、2ch、每buffer 960 samples（20ms）；PTS同host clock域，抵達延遲約60～113ms且常成批到達，在250ms reorder window內 |
 | 起點 | 首個audio PTS比首個完整畫面晚約107.5ms；writer保留此offset，未移到0 |
-| **讀回時的offset** | `AVAssetReaderTrackOutput`解碼該音軌時**從0開始並自動補靜音**（寫入474240 samples、讀出479402，差≈107.5ms）。檢查延遲音軌不能用解碼後first PTS，須看track timeRange／edit list或前段靜音 |
+| **讀回時的offset** | `AVAssetReaderTrackOutput`解碼該音軌時**從0開始並自動補靜音**（寫入474240 samples、讀出479402，差≈107.5ms）。檢查延遲音軌不能用解碼後first PTS，須看edit list（`segments`的leading empty edit）或前段靜音 |
 | 非目標App排除 | 錄Chrome視窗、同時以`say`（另一process）播放：與`say`參考音的正規化互相關峰值0.064，等同無`say`的基準0.073；人工混入`say`在0／−6／−12／−20dB時分別為0.733／0.475／0.262／0.109。→ 比目標音量低20dB以內的非目標App漏音皆可偵測，實測無漏音 |
 | 同App其他視窗 | 錄無聲的Chrome視窗A、另一Chrome視窗B播YouTube：RMS 0.033；暫停B後RMS 0（peak 0）。→ **同App其他視窗聲音會被錄入**，與規格3.3的預告一致 |
 | 安靜時的音訊 | 目標App完全無聲時仍持續收到buffer（10秒492個），內容為0；靜音不等於資料缺口 |
@@ -45,6 +45,10 @@
 | 停止（SIGINT） | `both`、`--duration 60`、5秒後`kill -INT`：exit 0、success、檔長4.508秒（啟動約0.5秒後才有首張畫面）；system seen＝written 219，音軌止於4.5067秒（距終點1.7ms），stopCapture期間仍收進終點前的在途音訊；screen／mic各1個越過終點被丟棄並計數 |
 | 停止（SIGTERM）＋HEVC | 同上改`kill -TERM`、`--codec hevc`：exit 0、video `hvc1`、1 video＋2 AAC、檔長4.530秒。mic止於終點，**system止於4.511秒，比終點少約20ms（一個buffer）**：停止時正在錄的那個system buffer不會送出。→ stopCapture返回不保證終點前音訊全部送達，規格5.3第8條的尾端補靜音是必要的 |
 | 媒體檢查 | 所有短片exit 0、writer completed、完整解碼；none為1 video、system／mic為1 video＋1 AAC、both為1 video＋2 AAC |
+| 混音（合成） | `mix-test` h264／hevc皆通過：1 video＋1 AAC 48k stereo；壓縮影片bytes hash相同、播放時間戳差0；440Hz前後段皆0.250（＝0.5×0.5）；880Hz在0.5秒前≈0、之後0.250，起點量得0.500秒；44.1k mono被均等放到左右聲道。→ 規格第6節的reader audioMix＋video passthrough方案可行 |
+| 混音（實錄） | `both.mov`（h264）與`sigterm-hevc.mov`混成單音軌MP4，影片完全相同；音軌偏移保留（0.12／0.24秒）；system peak 0.88→混後0.44。10秒片混音約0.2秒 |
+| H.264 B-frame與MP4 | 實錄與fixture的H.264都有frame reordering。MP4不允許負的composition offset，passthrough後**整條video media time往後移2幀，再以edit list對回0**；HEVC無此現象。比對passthrough須用套用edit後的播放時間，不能直接比原始PTS |
+| 延遲音軌的offset | **在leading empty edit，不在`timeRange.start`**（延遲0.5秒的音軌timeRange.start仍是0），用`track.load(.segments)`讀 |
 | 工具陷阱 | `afconvert`轉出的WAV**忽略音軌前段的empty edit**（mic.mov轉出9.37秒，而非10秒），會把延遲音軌移到0；AVAssetReader則保留offset並補靜音。驗證工具只能用遵守edit list的AVFoundation |
 
 對規格／計畫的影響：
@@ -61,8 +65,7 @@
 
 1. mic拒絕／重新允許；錄影中切換預設麥克風（應維持起始裝置）與拔除裝置；終端機前景Ctrl-C（已以`kill -INT/-TERM`驗證signal路徑）。
 2. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
-3. 合成fixture、雙AAC混音與壓縮video passthrough；驗證H264/HEVC及延遲音軌。
-4. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
+3. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
 
 ## Task 1：使用者已回報的本地基準
 

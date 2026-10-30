@@ -27,12 +27,27 @@ enum ProbeCommand {
     case help, list
     case capture(CaptureOptions)
     case inspect(URL)
+    case mixTest(codec: String, directory: URL)
+    case mix(input: URL, output: URL)
 
     static func parse(_ arguments: [String]) throws -> ProbeCommand {
         if arguments.isEmpty || arguments == ["--help"] { return .help }
         if arguments == ["list"] { return .list }
         if arguments.first == "inspect", arguments.count == 2 {
             return .inspect(fileURL(arguments[1]))
+        }
+        if arguments.first == "mix", arguments.count == 3 {
+            guard (arguments[2] as NSString).pathExtension.lowercased() == "mp4" else {
+                throw ProbeFailure.message("mix output must be .mp4")
+            }
+            return .mix(input: fileURL(arguments[1]), output: fileURL(arguments[2]))
+        }
+        if arguments.first == "mix-test" {
+            guard arguments.count == 5, arguments[1] == "--codec", ["h264", "hevc"].contains(arguments[2]),
+                  arguments[3] == "--dir" else {
+                throw ProbeFailure.message("Usage: mix-test --codec h264|hevc --dir EXISTING_DIR")
+            }
+            return .mixTest(codec: arguments[2], directory: fileURL(arguments[4]))
         }
         guard arguments.first == "capture" else {
             throw ProbeFailure.message("Expected list, capture, inspect, or --help.")

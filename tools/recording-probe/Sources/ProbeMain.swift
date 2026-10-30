@@ -11,11 +11,13 @@ Standalone recording probe — macOS 15+, NOT the Snapparazzi record command.
   recording-probe capture --window ID --audio none|system|mic|both \\
       --duration 10 --codec h264|hevc --output /existing-directory/probe.mov
   recording-probe inspect /path/to/probe.mov
+  recording-probe mix-test --codec h264|hevc --dir /existing-directory
+  recording-probe mix /path/to/both.mov /path/to/mixed.mp4
 
 Defaults: audio=none, duration=10 (1...60 seconds), codec=h264.
 JSON lines describe source formats/PTS and decode results; save with shell redirection.
 Output must not exist. both writes TWO SEPARATE audio tracks for diagnostics.
-No mix/remux, silence padding, static-frame ticker or production resize handling yet.
+mix-test builds a synthetic two-tone MOV, mixes it (video passthrough + one AAC at 0.5 gain each)\nand checks tracks, passthrough, levels and the 0.5 s offset; mix applies the same mix to a capture.\nNo silence padding, static-frame ticker or production resize handling yet.
 Actual App-audio scope and sync are UNVERIFIED until tested on a Mac.
 """
 
@@ -44,14 +46,18 @@ struct ProbeMain {
     @available(macOS 15.0, *)
     @MainActor
     private static func run(_ command: ProbeCommand) async throws {
-        if case .inspect = command {} else {
+        switch command {
+        case .list, .capture:
             // A plain CLI has no window-server connection yet; SCContentFilter
             // queries displays and aborts (CGS_REQUIRE_INIT) unless CG is initialized.
             _ = CGMainDisplayID()
+        default: break
         }
         switch command {
         case .help: return
         case .inspect(let url): try await inspect(url)
+        case .mixTest(let codec, let directory): try await mixTest(codec: codec, directory: directory)
+        case .mix(let input, let output): try await mixRecording(input, to: output)
         case .list:
             try screenPermission()
             let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
