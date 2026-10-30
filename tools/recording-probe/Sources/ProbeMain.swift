@@ -44,6 +44,11 @@ struct ProbeMain {
     @available(macOS 15.0, *)
     @MainActor
     private static func run(_ command: ProbeCommand) async throws {
+        if case .inspect = command {} else {
+            // A plain CLI has no window-server connection yet; SCContentFilter
+            // queries displays and aborts (CGS_REQUIRE_INIT) unless CG is initialized.
+            _ = CGMainDisplayID()
+        }
         switch command {
         case .help: return
         case .inspect(let url): try await inspect(url)

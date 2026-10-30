@@ -256,8 +256,10 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             return true
         }
         if hasVideo {
+            // AVAssetWriter is non-Sendable, so start finishing via a synchronous
+            // (non-escaping) hop onto queue; finishWriting itself returns at once.
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                queue.async { self.writer.finishWriting { continuation.resume() } }
+                queue.sync { writer.finishWriting { continuation.resume() } }
             }
         }
         return queue.sync {
