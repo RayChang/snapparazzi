@@ -158,14 +158,21 @@
 ## 麥克風、權限與舊系統的補驗
 
 - **麥克風軌音畫同步**（`make recording-microphone`）：fixture只把自己的輸出導到MacBook喇叭，暫時以MacBook麥克風為預設輸入，錄`--audio mic` 20秒：10個嗶聲全部配對，offset 23～67 ms（含喇叭輸出、空氣與麥克風延遲），<100 ms。外接螢幕麥克風聽不到同一喇叭（可能距離或降噪），故改用內建麥克風。
+- **錄影中切換系統預設麥克風**（同上）：以包住內建麥克風的暫時 aggregate device 作為預設輸入開始錄`--audio mic`，第4秒把預設改成另一個輸入：錄影繼續、麥克風軌連續（728個buffer，只有啟動0.51秒補零）；第8秒刪除起始裝置後以「麥克風已移除」停止、exit 1——證明錄影綁定開始時的裝置，沒有跟隨新的預設（若跟隨會錄到20秒結束）。當時外接螢幕已拔除、只剩一支實體麥克風，所以以「刪除起始裝置是否停止」判斷綁定，而非比對兩支麥克風的聲音內容。
 - **錄影中麥克風消失**（同上）：以CoreAudio建立包住目前預設輸入的公開aggregate device並設為預設輸入，錄`--audio mic`第4秒刪除：1秒內以「麥克風已移除」停止、exit 1、保留約4.3秒可播放的檔案；結束時刪除裝置並還原原本的預設輸入。
 - **真實的麥克風權限拒絕**（2026-10-30 22:55，使用者在系統設定關閉 iTerm2 的麥克風；TCC `auth_value` 2→0）：`--audio mic`、`--audio both` 皆不再詢問、直接 exit 1 並說明如何開啟，輸出位置連父資料夾都沒有建立；同時 `--audio none` 與 `--audio system` 照常 exit 0 錄成（system 軌錄到 fixture 的 440 Hz）。測完由使用者重新開啟。
 - **麥克風權限決策**：`ensureMicrophonePermission`與`RecordCommand`的權限檢查可注入；合成測試證明 denied／restricted 直接失敗且不跳詢問、notDetermined 只詢問一次並依結果、none／system 完全不詢問麥克風、mic／both 被拒時 exit 1 且輸出位置不產生任何檔案。
 - **macOS 14 相容**：以`-target arm64-apple-macosx14.0`、warnings-as-errors 編譯成功（availability checker 確認所有 macOS 15 API 都在`#available`之後）；binary `minos 14.0`，ScreenCaptureKit 只以 12.3 即有的類別與 Objective-C selector 引用，比 14 新的 Swift 符號皆為 weak import，故可在 14 載入；此 build 在本機正常執行。
 
+- **5秒內沒有完整畫面**（`make recording-acceptance` 8b）：ScreenCaptureKit 對靜止視窗也持續送畫面，沒有自然方式讓它不送，因此以測試用環境變數`SNAPPARAZZI_TEST_IGNORE_VIDEO=1`讓 record 丟棄所有畫面，其餘為正式流程：約5秒後以「No video frame within 5 seconds」exit 1，輸出與 stage 資料夾都不留下。
+- 麥克風軌同步檢查需要 MacBook 喇叭音量 ≥ 20%，否則該項標為 SKIP（不算通過）；上方的10/10結果是在外接螢幕接著、喇叭音量31%時測得，之後外接螢幕拔除、喇叭降到6%的重跑標為 SKIP。
+
 ## 未驗證／外部阻擋
 
 - **在 macOS 14 實機執行`record`走到「需要 macOS 15」分支**：本機與 CI 都是 macOS 26，沒有 macOS 14 機器；使用者選擇不安裝 macOS 14 虛擬機（需安裝 tart 並下載約 25–30 GB），以編譯與連結層級的證據（見上）為準。
-- 5秒內無畫面：無法可靠地讓 ScreenCaptureKit 不送畫面，未以實機觸發。
-- macOS 14以前執行`record`（應exit 1並提示）與舊SDK編譯：沒有舊系統，未測。
-- DRM／受保護內容、瀏覽器以外的多程序App：未測。
+
+## 文件化的限制（非待驗證項）
+
+- 以 macOS 14 SDK（Xcode 15／對應 CLT）編譯：錄影用到 macOS 15 SDK 才有的 ScreenCaptureKit 麥克風 API，舊 SDK 無法編譯；README 已寫明需要 macOS 15 以上 SDK。
+- DRM／受保護內容可能錄不到聲音或畫面：規格要求「如實列出」，已寫入 README 與 `record --help`，沒有可合法取得的受保護測試素材。
+- 多程序 App：Task 0 以 Chrome（多程序瀏覽器）驗證了 App 範圍與同 App 其他視窗會錄入；其他多程序 App 依同一機制，未逐一測試。
