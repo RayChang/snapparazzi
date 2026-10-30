@@ -8,7 +8,7 @@ private let help = """
 Standalone recording probe — macOS 15+, NOT the Snapparazzi record command.
 
   recording-probe list
-  recording-probe capture --window ID --audio none|system|mic|both \
+  recording-probe capture --window ID --audio none|system|mic|both \\
       --duration 10 --codec h264|hevc --output /existing-directory/probe.mov
   recording-probe inspect /path/to/probe.mov
 

@@ -1,6 +1,6 @@
 # Task 0：獨立錄影驗證工具
 
-**目前狀態：原始碼已準備，尚未在 Mac 編譯或執行。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
+**目前狀態：已在 macOS 26.5.2 編譯並完成部分實測（none／system、App 範圍、時鐘），結果見[開發交接](../../docs/superpowers/plans/2026-10-30-recording-progress.md)；mic、both、Ctrl-C、Retina 等仍待測。** 這是研究工具，不是正式 `snapparazzi record`，也不代表 Task 0 已通過。正式 CLI、Makefile、installer 與截圖測試保持原樣。
 
 此工具先驗證單一 SCStream 的畫面／App audio／microphone 回呼、原始格式與 PTS，以及 AVAssetWriter 的短片寫入。使用 ScreenCaptureKit 單視窗 filter；**音訊是否確實限定目標 App 必須實測，不能由 filter 名稱推論。**
 
@@ -72,7 +72,7 @@ mic/both 才請求 microphone permission，固定開始時的預設裝置 unique
 | configured | 目標 ID/PID、source backing pixels、1280px 以內的固定畫布、codec/audio mode |
 | sample | 每來源前8個buffer的原始PTS、host clock、duration、samples；audio的實際ASBD取樣率／聲道數；screen狀態與幾何附件 |
 | epoch | 第一個完整video的sourcePTS；三來源都減同一epoch，不各自歸零 |
-| capture_result | 每來源seen/written、丟棄原因、writer完成／error；不能只看success就宣稱scope與sync通過 |
+| capture_result | 每來源seen/written、丟棄原因（含超過終點的`*_after_endpoint`）、`screen_dirty`（完整畫面依dirtyRects分為changed／unchanged／missing）、writer完成／error；不能只看success就宣稱scope與sync通過 |
 | inspection | 全檔decode完成、每軌codec／大小／first/last PTS、audio RMS與peak |
 
 none應1video、0audio；system/mic應1video、1audio；both此階段是1video、**2條獨立audio tracks**。預期音源完全沒有written buffers、要求的track消失、或已知有聲來源RMS為0，都需要診斷；合法安靜與擷取錯誤分開記錄。能量不是音源歸屬證據。

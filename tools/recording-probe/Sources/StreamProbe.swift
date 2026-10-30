@@ -32,6 +32,9 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
     private var written: [String: Int] = [:]
     private var dropped: [String: Int] = [:]
     private var lastPTS: [String: CMTime] = [:]
+    // Complete screen frames split by SCK's dirtyRects attachment: "unchanged"
+    // means SCK reported no changed region, "missing" means no attachment.
+    private var screenDirty: [String: Int] = [:]
 
     init(options: CaptureOptions, window: SCWindow, microphoneID: String?) throws {
         self.options = options
@@ -186,6 +189,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
                                      ("scale_factor", .scaleFactor)] {
                     metadata[label] = String(describing: frame[key] ?? NSNull())
                 }
+                metadata["dirty_rects"] = (frame[.dirtyRects] as? [Any])?.count as Any? ?? NSNull()
             }
             emit(metadata)
         }
@@ -197,6 +201,11 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
                 dropped["screen_incomplete", default: 0] += 1
                 return
             }
+            let dirtyKey: String
+            if let rects = attachments.first?[.dirtyRects] as? [Any] {
+                dirtyKey = rects.isEmpty ? "unchanged" : "changed"
+            } else { dirtyKey = "missing" }
+            screenDirty[dirtyKey, default: 0] += 1
             if epoch == nil {
                 epoch = sourcePTS
                 writer.startSession(atSourceTime: .zero)
@@ -214,7 +223,10 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             return
         }
         let limit = endpoint ?? CMTime(seconds: options.duration, preferredTimescale: 48000)
-        guard CMTimeCompare(normalized, limit) < 0 else { return }
+        guard CMTimeCompare(normalized, limit) < 0 else {
+            dropped["\(name)_after_endpoint", default: 0] += 1
+            return
+        }
         if let last = lastPTS[name], CMTimeCompare(normalized, last) <= 0 {
             fail("Non-increasing \(name) PTS; inspect raw sample logs.")
             return
@@ -266,6 +278,7 @@ final class StreamProbe: NSObject, SCStreamOutput, SCStreamDelegate {
             let complete = hasVideo && writer.status == .completed && failure == nil
             emit(["event": "capture_result", "writer_completed": writer.status == .completed,
                   "success": complete, "seen": seen, "written": written, "dropped": dropped,
+                  "screen_dirty": screenDirty,
                   "error": (failure ?? writer.error?.localizedDescription) as Any? ?? NSNull(),
                   "output": options.output.path,
                   "note": "Completion does not prove App isolation, audible audio, or synchronization."])
