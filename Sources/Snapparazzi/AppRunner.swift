@@ -36,9 +36,8 @@ func appMain() -> Int32 {
         case .recordingHelp:
             print(recordingHelpText)
             return 0
-        case .record:
-            fputs("錯誤 / Error: record 尚未實作 / record is not implemented yet.\n", stderr)
-            return 1
+        case .record(let options):
+            runRecordCommand(options)
         }
     } catch let error as CLIUsageError {
         fputs("錯誤 / Error: \(error.message)\n", stderr)
