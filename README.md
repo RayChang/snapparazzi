@@ -2,7 +2,9 @@
 
 Snapparazzi is a native macOS CLI that repeatedly captures one specific app window. Pick a visible window interactively or pass its window ID, choose the interval, and let your tiny terminal paparazzo work until you press `Ctrl-C`.
 
-Snapparazzi 是一個原生 macOS CLI，可定時截取指定的 App 視窗。你可以從互動清單選擇目前可見視窗，也可以直接傳入 window ID 與時間間隔；按下 `Ctrl-C` 即可停止。
+Snapparazzi 是一個原生 macOS CLI，可定時截取指定的 App 視窗。你可以從互動清單選擇目前可見視窗，也可以直接傳入 window ID 與時間間隔；按下 `Ctrl-C` 即可停止。macOS 15 以上也可以用 `snapparazzi record` 把視窗錄成 MP4，並可錄入 App 聲音與麥克風。
+
+Snapparazzi can also record a window to MP4 with `snapparazzi record` on macOS 15 or later, optionally with the app's audio and the microphone.
 
 ## 安裝 / Install
 
@@ -22,9 +24,9 @@ Download the source, build it locally, and install it to `~/.local/bin/snapparaz
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh
 ```
 
-重新執行同一命令即可更新。安裝特定 tag 或自訂 bin 目錄：
+重新執行同一命令即可更新。安裝程式會下載同一版本的完整原始碼並在本機編譯。安裝特定 tag／分支／commit 或自訂 bin 目錄：
 
-Run the same command again to update. To install a specific tag or choose another bin directory:
+Run the same command again to update. The installer downloads the full source for one ref and builds it locally. To install a specific tag, branch or commit, or choose another bin directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
@@ -71,6 +73,38 @@ For complete usage, exit statuses, and more examples:
 ```sh
 snapparazzi --help
 ```
+
+## 錄影 / Recording
+
+```sh
+snapparazzi --list                                    # 先查 window ID / find the window ID
+snapparazzi record -w 12345 --duration 10             # 只錄畫面 / video only
+snapparazzi record -w 12345 --audio system -o ~/Movies/demo.mp4
+snapparazzi record -w 12345 --audio both --codec hevc --duration 3600
+snapparazzi record --help
+```
+
+| Option | 說明 / Description |
+|---|---|
+| `-w`, `--window <id>` | 必填 / Required |
+| `--audio <none\|system\|mic\|both>` | 預設 `none` / Default `none` |
+| `--fps <1-60>` | 預設 30 / Default 30 |
+| `--codec <h264\|hevc>` | 預設 `h264` / Default `h264` |
+| `--duration <seconds>` | 0.5–86400；省略時按 Ctrl-C 停止 / Omit to stop with Ctrl-C |
+| `-o`, `--output <file.mp4>` | 不可已存在；預設 `~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-PID.mp4` / Must not exist |
+| `-m`, `--max-dimension <pixels>` | 等比例縮小，不放大 / Fit the longest edge, never upscale |
+
+**聲音範圍 / Audio scope.** `system` 錄的是目標視窗所屬 App 的聲音，不是整台 Mac：其他 App 的聲音不會錄入，但**同一 App 其他視窗或分頁的聲音可能一起錄入**（例如 Chrome 的其他分頁）。DRM 等受保護內容可能錄不到。`system` records the target window's app, not the whole Mac: other apps are excluded, but the same app's other windows or tabs may be included.
+
+**both.** App 聲音與麥克風先錄成兩條音軌，停止後再離線混成一條音軌（各 0.5 增益），影片不重新編碼。代價是停止後還要幾秒收尾、暫時需要約兩倍空間，且音訊多經過一次 AAC 編碼。外放聲音會被麥克風再錄一次，建議戴耳機。`both` records two tracks, then mixes them into one after you stop (0.5 gain each) without re-encoding video. It takes a few extra seconds and about twice the space while finishing, and the audio is AAC-encoded twice. Use headphones to avoid echo.
+
+**權限 / Permissions.** 需要「螢幕與系統錄音」；`mic`、`both` 另需「麥克風」。macOS 通常把權限記在你用的 Terminal App 名下，而不是 snapparazzi 本身；換一個 Terminal 可能要重新允許。Requires Screen & System Audio Recording, plus Microphone for `mic`/`both`. macOS usually grants these to your terminal app, not to snapparazzi itself.
+
+**視窗狀態 / Window state.** 視窗最小化超過 1 秒時改錄黑畫面，還原後繼續；切換到其他桌面時照常錄製。視窗被關閉或 App 結束時，錄影停止、保留已錄內容並以結束碼 1 結束。調整視窗大小時影片尺寸不變，內容等比例縮放並貼齊左上角。Minimized windows record black after 1 second and resume on restore; other Spaces keep recording. Closing the window or quitting the app stops, keeps the recording and exits 1. Resizing keeps the video size; content is scaled to fit, anchored top-left.
+
+**停止與失敗 / Stopping and failures.** `Ctrl-C`、`SIGTERM` 或 `--duration` 會正常收尾，結束碼 0。錄影期間先寫入輸出位置旁的暫存資料夾（`.<檔名>.snapparazzi-*`），完成檢查後才以不覆寫的方式移到最終路徑。寫入或混音失敗時會保留暫存檔並顯示路徑；`both` 混音時再按一次 `Ctrl-C` 會取消混音，保留含兩條獨立音軌的 MOV。`Ctrl-C`, `SIGTERM` and `--duration` finish normally (exit 0). Recording goes to a staging folder next to the output and is moved into place only after it is checked, never overwriting. Failures keep the staged file and print its path; a second `Ctrl-C` while `both` is mixing cancels the mix and keeps a MOV with two separate audio tracks.
+
+**需求 / Requirements.** 錄影需要 macOS 15 以上；本機編譯需要 macOS 15 以上的 SDK（Xcode 16 或對應的 Command Line Tools）。截圖功能不受影響。Recording needs macOS 15+, and building needs a macOS 15+ SDK (Xcode 16 or matching Command Line Tools).
 
 ## 壓縮與效能 / Compression and performance
 
@@ -146,7 +180,17 @@ make test
 make install
 ```
 
-`make test` compiles a release binary with warnings treated as errors, runs the CLI contract suite, and tests the installer in an isolated temporary destination.
+`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, and the installer in an isolated temporary destination.
+
+Real recordings are opt-in because they need Screen Recording/Microphone permission and a logged-in desktop:
+
+```sh
+make recording-acceptance        # every audio mode/codec, A/V sync, app-only audio, minimize, resize, quit, signals
+DURATION=3600 make recording-long-run   # one hour of --audio both: drift, memory, finishing time, disk
+make recording-inspect && .build/recording-inspect FILE.mp4 [--sync]
+```
+
+They drive a scripted fixture app (tests/RecordingFixtureApp) and check results with `recording-inspect`. `tools/recording-probe` is the standalone ScreenCaptureKit research probe used before the feature was built.
 
 ## 解除安裝 / Uninstall
 
@@ -154,9 +198,9 @@ make install
 rm ~/.local/bin/snapparazzi
 ```
 
-截圖不會自動刪除。如不再需要，可自行移除 `~/Snapparazzi/captures`。
+截圖與錄影不會自動刪除。如不再需要，可自行移除 `~/Snapparazzi/captures` 與 `~/Snapparazzi/recordings`。
 
-Screenshots are never deleted automatically. Remove `~/Snapparazzi/captures` yourself if you no longer need them.
+Screenshots and recordings are never deleted automatically. Remove `~/Snapparazzi/captures` and `~/Snapparazzi/recordings` yourself if you no longer need them.
 
 ## License
 

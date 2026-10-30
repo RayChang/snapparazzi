@@ -1,6 +1,6 @@
 # Snapparazzi 錄影與音訊規格
 
-狀態：提案，尚未實作。日期：2026-10-30。基準 commit：`6cb3de2a404730af77d794d8960b83a4d5ded1f3`。
+狀態：已實作（`feat/recording`），實作差異與驗證證據見[開發交接](../plans/2026-10-30-recording-progress.md)。日期：2026-10-30。基準 commit：`6cb3de2a404730af77d794d8960b83a4d5ded1f3`。
 
 使用者已確認：**新增錄影功能可以要求 macOS 15 以上；系統音訊以目標 App 為範圍**。其餘預設值是本提案的明確設計選擇，可在實作前調整。
 
@@ -111,26 +111,25 @@ Sources/Snapparazzi/
 │   └── Help.swift
 ├── Core/
 │   ├── WindowDiscovery.swift        # CGWindowID + ownerPID，共用選窗
-│   ├── SessionManager.swift         # 截圖目錄／錄影檔案分開的方法
+│   ├── SessionManager.swift         # 截圖目錄
+│   ├── RecordingSession.swift       # 錄影輸出 preflight、私有 stage、不覆寫提交
 │   ├── StopController.swift         # 沿用截圖子程序取消語意
-│   └── Permissions.swift
+│   └── Permissions.swift            # 螢幕錄製、麥克風
 ├── Capture/
 │   └── ScreenshotEngine.swift       # 原 screencapture / sips 邏輯
 ├── Recording/
-│   ├── RecordingEngine.swift        # 狀態機、一次性停止與總協調
-│   ├── RecordingTypes.swift         # state/reason/result/stats/protocols
-│   ├── ScreenStream.swift           # SCK filter/config/output/delegate
-│   ├── AudioCapture.swift           # PCM 轉換、時間範圍裁切
-│   ├── VideoWriter.swift            # 第一階段 AVAssetWriter
+│   ├── RecordingEngine.swift        # 準備、SCK adapter、signals、停止順序、驗證與提交
+│   ├── RecordingPipeline.swift      # 共同時間軸、幀排程、黑畫面、音訊對齊／補零／裁切
+│   ├── AudioNormalizer.swift        # 每來源 AVAudioConverter → 48 kHz stereo
+│   ├── StageWriter.swift            # 第一階段 AVAssetWriter
 │   ├── AudioMixer.swift             # both 的離線混音與影片 passthrough
-│   ├── FrameComposer.swift          # 黑畫面、重複畫面（SCK 畫面直接寫入）
-│   └── RecordingTimeline.swift      # 共同原點、幀排程、截止時間
+│   └── RecordingTypes.swift         # stop reason／stats
 └── Testing/
     └── TestCommand.swift            # 原 --test 契約與新 parser probe
 Resources/Info.plist
 ```
 
-不要為了讓目錄好看就建立沒有工作的抽象。`AudioCapture` 不打開另一個裝置；麥克風輸入由同一個 `SCStream` 提供。
+不要為了讓目錄好看就建立沒有工作的抽象。實作時把原規劃的 ScreenStream／FrameComposer／RecordingTimeline 合併：畫面直接寫入（不置中、不縮放）後 FrameComposer 只剩黑畫面，時間軸與幀排程集中在 `RecordingPipeline`，使它不依賴 ScreenCaptureKit、可用合成 buffer 與假時鐘測試；SCK adapter 放在 `RecordingEngine`。麥克風輸入由同一個 `SCStream` 提供。
 
 ```mermaid
 flowchart TD
@@ -149,7 +148,7 @@ flowchart TD
     ONE --> FINAL
 ```
 
-分層約束：parser 不存取 TCC／檔案／視窗；ScreenStream 不決定路徑；writer 不發 signal；engine 不做 codec 的底層 buffer 處理；所有元件以可注入 protocol 隔離真實 OS 服務與測試 fake。
+分層約束：parser 不存取 TCC／檔案／視窗；pipeline 不碰 SCK、路徑或 signal；writer 不發 signal。可測性靠「pipeline 吃 CMSampleBuffer 與 host time」這個邊界，而不是為每個 OS 服務建 protocol fake。
 
 ## 5. 媒體資料契約
 
@@ -226,8 +225,8 @@ idle → preparing → starting → recording → stopping → finalizing → co
                                      failed
 ```
 
-- engine 的狀態與終止原因由單一序列協調器管理；writer 的所有 calls 由單一 media queue 管理。SDK callback 不直接修改跨 queue 的狀態。
-- SCK video/system/mic callback queues 與 media queue 分開；傳遞 buffer 前先取得有界容量，不能每個 sample 無限 `Task {}` / `async`。
+- 實作採單一 media queue：SCK 的 screen／audio／microphone sampleHandlerQueue 就是這個 queue，tick timer、停止請求與 writer calls 也都在它上面，所以沒有跨 queue 狀態；callback 同步處理、不另開 `Task`，緩衝只有 pipeline 內有界的音訊 pending（1 秒）與 pre-t0（250 ms）。實測每個 callback 與 tick 最多約 10 ms。
+- tick timer 在 `startCapture` 之前啟動（開音訊時 `startCapture` 約 0.6 秒才返回，期間畫面已開始送達），並以單次 timer 對準下一個幀槽中點重新排程，避免 timer 抖動跨過槽邊界。
 - 原始 video 只保留最新兩張；audio 待處理總量每來源最多 1 秒（包含最多 250 ms reorder，預留 callback／converter 的 chunk 空間）。容量不足：video 丟幀並記數；audio 超過硬容量即以錯誤收尾，不丟棄後繼續假裝成功。即使尚未達硬容量，writer 連續 1 秒不 ready 也視為過載；時間使用單調 host clock。
 - 畫面轉換與 writer input 不 ready 時也適用容量限制；第一階段 inputs `expectsMediaDataInRealTime=true`。每次 append 檢查 Bool 與 writer.status/error。
 - signal 用 DispatchSource（SIGINT、SIGTERM），handler 只送停止請求；不能直接 `exit()` 或在 POSIX signal handler 中呼叫 AVFoundation。

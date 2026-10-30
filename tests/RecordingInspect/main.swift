@@ -1,10 +1,12 @@
 import Foundation
+import CoreMedia
 
 // recording-inspect FILE — prints a JSON report of a recording: tracks, codecs,
 // sizes, duration, leading audio offsets, audio levels, and when audio first
 // becomes audible. Exits 1 if the file cannot be read or has no video track.
 // With --sync, also pairs white flashes with 1 kHz beeps (fixture app markers)
-// and reports audio-minus-video offsets.
+// and reports audio-minus-video offsets; --sync START LENGTH limits that to a time
+// window (for long recordings, which are too large to decode whole).
 
 // Also:
 //   recording-inspect --levels FILE HZ...      tone amplitude per frequency (from 1 s to 1 s before the end)
@@ -38,17 +40,22 @@ if arguments.count >= 4, arguments[1] == "--levels" || arguments[1] == "--luma" 
         exit(1)
     }
 }
-guard arguments.count == 2 || (arguments.count == 3 && arguments[2] == "--sync") else {
-    fputs("usage: recording-inspect FILE [--sync]\n", stderr)
+guard arguments.count == 2 || (arguments.count >= 3 && arguments[2] == "--sync") else {
+    fputs("usage: recording-inspect FILE [--sync [START LENGTH]]\n", stderr)
     exit(2)
 }
 let url = URL(fileURLWithPath: arguments[1])
-let measureSync = arguments.count == 3
+let measureSync = arguments.count >= 3
+let syncRange: CMTimeRange? = arguments.count == 5
+    ? CMTimeRange(start: CMTime(seconds: Double(arguments[3]) ?? 0, preferredTimescale: 600),
+                  duration: CMTime(seconds: Double(arguments[4]) ?? 60, preferredTimescale: 600))
+    : nil
+let summaryOnly = syncRange != nil
 
 do {
     let report = try await inspectAsset(url)
     var audioReports: [[String: Any]] = []
-    for (index, track) in report.audio.enumerated() {
+    for (index, track) in report.audio.enumerated() where !summaryOnly {
         let pcm = try await decodeStereo48k(url, trackIndex: index)
         var sum = 0.0
         var peak = 0.0
@@ -75,8 +82,9 @@ do {
     }
     var syncReport: Any = NSNull()
     if measureSync {
-        let flashes = try await flashOnsets(url)
-        let beeps = toneBurstOnsets(try await decodeStereo48k(url), frequency: 1000)
+        let flashes = try await flashOnsets(url, range: syncRange)
+        let offset = syncRange.map { CMTimeGetSeconds($0.start) } ?? 0
+        let beeps = toneBurstOnsets(try await decodeStereo48k(url, range: syncRange), frequency: 1000).map { $0 + offset }
         var pairs: [[String: Double]] = []
         for flash in flashes {
             guard let beep = beeps.min(by: { abs($0 - flash) < abs($1 - flash) }), abs(beep - flash) < 0.5 else { continue }

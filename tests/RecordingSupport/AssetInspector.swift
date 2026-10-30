@@ -69,7 +69,7 @@ func inspectAsset(_ url: URL) async throws -> AssetReport {
 }
 
 // The first audio track decoded to interleaved 48 kHz stereo Float32 on the presentation timeline.
-func decodeStereo48k(_ url: URL, trackIndex: Int = 0) async throws -> [Float] {
+func decodeStereo48k(_ url: URL, trackIndex: Int = 0, range: CMTimeRange? = nil) async throws -> [Float] {
     let asset = AVURLAsset(url: url)
     let tracks = try await asset.loadTracks(withMediaType: .audio)
     guard trackIndex < tracks.count else { return [] }
@@ -80,6 +80,7 @@ func decodeStereo48k(_ url: URL, trackIndex: Int = 0) async throws -> [Float] {
         AVLinearPCMIsNonInterleaved: false, AVLinearPCMIsBigEndianKey: false
     ])
     reader.add(output)
+    if let range { reader.timeRange = range }
     guard reader.startReading() else { throw reader.error ?? NSError(domain: "inspect", code: 1) }
     var samples: [Float] = []
     while let buffer = output.copyNextSampleBuffer() {
@@ -141,7 +142,7 @@ func frameMeanColor(_ url: URL, at seconds: Double) async throws -> (red: Int, g
 
 // Times (seconds) where the mean luminance of the video jumps from dark to bright,
 // e.g. the fixture app's white flashes. Frames are sampled sparsely for speed.
-func flashOnsets(_ url: URL) async throws -> [Double] {
+func flashOnsets(_ url: URL, range: CMTimeRange? = nil) async throws -> [Double] {
     let asset = AVURLAsset(url: url)
     guard let track = try await asset.loadTracks(withMediaType: .video).first else { return [] }
     let reader = try AVAssetReader(asset: asset)
@@ -150,6 +151,7 @@ func flashOnsets(_ url: URL) async throws -> [Double] {
     ])
     output.alwaysCopiesSampleData = false
     reader.add(output)
+    if let range { reader.timeRange = range }
     reader.startReading()
     var samples: [(time: Double, luma: Double)] = []
     while let buffer = output.copyNextSampleBuffer() {

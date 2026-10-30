@@ -91,6 +91,49 @@
 - `make clean && make test` exit 0：CLI 53／53、installer 25／25。
 - 補驗（push `3b1fe3f`後）：以新`install.sh`從GitHub實際安裝`feat/recording`到暫存目錄成功，安裝出的binary 42個基準案例逐字相同、`~/.zshrc`未改、無暫存殘留；GitHub Actions CI通過（53＋25）。需權限的路徑以拆檔前（`c8e9e14`）binary對照：`--list`輸出相同；`-w 35239 -i 1 -f png -m 640`截3.5秒後SIGINT，兩者皆exit 0、4張連號檔名、摘要相同、圖片皆640×401。
 
-## 其他 Tasks
+## Task 3：record CLI（完成，`2985378`）
 
-Task3～16尚未開始。不要在沒有Mac技術gate的情況下把prototype搬入production或宣稱錄影功能可用。
+- `record`獨立parser與RecordingOptions；`capture`為截圖別名；子命令只認第一個token。截圖模式行為不變，根help只多3行指向`record --help`（其餘42個基準案例輸出逐字相同）。
+- `--test record-arguments`；`tests/record-cli-tests.sh` 109項（四種audio、兩codec、fps／duration／window／output／max-dimension邊界、重複與跨模式選項、help優先順序、help與參數錯誤不建立檔案）。
+
+## Task 4–14：錄影實作（完成，`99373fa`、`4cefe23`、`e8ff9e8`）
+
+依規格實作，架構有合併（見規格第4節）：`RecordingPipeline`（時間軸、幀槽、黑畫面、音訊對齊／補零／裁切）、`AudioNormalizer`、`StageWriter`、`AudioMixer`（移植Task 0 probe）、`RecordingSession`、`RecordingEngine`（SCK、signals、停止順序、驗證、提交）。
+
+- Task 5：`Resources/Info.plist`嵌入`__TEXT,__info_plist`、ad-hoc簽章identifier `dev.snapparazzi.cli`；版本只寫在plist，Makefile驗證格式並產生`.build/Generated/BuildMetadata.swift`（內容不變不改寫）。installer要求plist；installer tests檢查嵌入的麥克風用途說明、identifier與`record --help`（30項）。
+- 停止順序：endpoint →（tick停）→ `stopCapture`（期間仍收endpoint前在途樣本）→ queue barrier封閉來源 → pipeline補尾 → `finishWriting` → both混音 → 驗證（軌道數、codec、尺寸、長度、首尾可解碼）→ `renamex_np(RENAME_EXCL)`。失敗保留stage；混音時第二次SIGINT取消並保留雙音軌MOV。
+- 合成測試（`make test-recording`，CI也跑）：9案例60項，以真AVFoundation寫檔／混音並解碼量測——both的offset（0.12／0.5秒）與0.5增益、44.1k mono→雙聲道、缺口補零、重複trim、t0前音訊裁切、最小化1秒後黑畫面、晚到tick跳槽不爆量、endpoint精確裁切、session不覆寫與權限0700、stop reason嚴重度。抓到3個bug：PCM複製前未設frameLength、浮點幀槽取整、endpoint後補零無窮迴圈。
+- 實錄後修正：tick timer原本在`startCapture`返回後才啟動（開音訊約0.6秒，造成開頭跳槽）、duration那次tick先寫了落在終點的幀、輸出導向檔案時進度訊息被緩衝。
+
+## Task 15：CI、文件（完成）
+
+- `make test`＝build＋recording tests＋三組shell suites；CI另印toolchain版本並檢查所有新腳本語法。GitHub macOS runner上合成媒體測試（H.264／HEVC編碼）通過。
+- README新增錄影章節（用法、App範圍與同App限制、both取捨與耳機、權限歸屬、視窗狀態、停止與失敗、macOS 15／SDK需求）與開發章節的opt-in測試說明。
+
+## Task 16：實機驗收
+
+`make recording-acceptance`（需權限與GUI）以獨立`.app`的fixture視窗（`tests/RecordingFixtureApp`：音調、每2秒白閃＋1 kHz嗶聲、排程最小化／改大小／結束）錄製並以`recording-inspect`檢查，64項全過（macOS 26.5.2、arm64）：
+
+| 項目 | 結果 |
+|---|---|
+| none／system／mic／both × h264（none、both另測hevc），6秒 | 軌道數、codec、180幀、長度6.00秒、音軌48 kHz stereo AAC且涵蓋全長 |
+| 音畫同步（白閃 vs 嗶聲） | system／both 各次10～35 ms，無漂移（遠低於100 ms） |
+| App範圍 | fixture 440 Hz 錄到0.099；同時另一程序`afplay`的880 Hz為0.0000 |
+| 最小化2→5秒 | 固定240幀；最小化期間亮度0（黑），前後為畫面 |
+| 改大小兩次 | 180幀、尺寸不變、無錯誤 |
+| App結束 | exit 1、「window closed」、保留可播放的約2秒檔 |
+| SIGINT／SIGTERM | exit 0、檔長3–4秒 |
+| both混音時第二次SIGINT | exit 1、不產生MP4、保留雙音軌MOV並說明 |
+| 輸出已存在／未知視窗 | exit 1、既有檔不變、無stage殘留 |
+
+觀察：fixture若只呼叫`NSWindow.close()`，視窗在window server仍存在，SCK視為暫時不可見（黑畫面、繼續錄），不會報-3815；真正銷毀視窗（Task 0 Finder ⌘W）或App結束才停止。音高驗證：曾錄到404 Hz，經player-node對照證實是fixture的source node以44.1 kHz運作，錄影端音高正確。
+
+一小時`both`長錄（`DURATION=3600 make recording-long-run`）：待補。
+
+## 未驗證／限制
+
+- 麥克風權限「拒絕／重新允許」：需更動使用者TCC設定，未自動測；程式在拒絕或受限制時以exit 1結束、不降級成無聲。
+- 錄影中切換預設麥克風或拔除裝置：需實體操作，未測；設計上固定開始時的裝置uniqueID。
+- 磁碟空間不足（預檢與512 MiB低水位停止）、5秒內無畫面：未以實機觸發。
+- macOS 14以前執行`record`（應exit 1並提示）與舊SDK編譯：沒有舊系統，未測。
+- DRM／受保護內容、瀏覽器以外的多程序App：未測。

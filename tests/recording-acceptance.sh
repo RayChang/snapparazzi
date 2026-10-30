@@ -20,6 +20,7 @@ window_id=""
 cleanup() {
   stop_fixture
   pkill -f "$work/tone.wav" 2>/dev/null
+  [[ -d "$work/small-volume" ]] && hdiutil detach "$work/small-volume" -force >/dev/null 2>&1
   rm -rf "$work"
 }
 trap cleanup EXIT
@@ -197,6 +198,34 @@ exit_code=$?
 check "unknown window: exit 1" "$(( exit_code == 1 ))"
 check "no stage folders left except the cancelled one" \
   "$(( $(print -l "$work"/.*.snapparazzi-*(N) | grep -vc cancel) == 0 ))"
+
+# 9. Disk space, on a small disk image: refuse up front, and stop at the 512 MiB low-water mark.
+dmg="$work/small.dmg"
+volume="$work/small-volume"
+mkdir -p "$volume"
+if hdiutil create -size 700m -fs APFS -volname SnapparazziTest "$dmg" >/dev/null 2>&1 \
+   && hdiutil attach "$dmg" -mountpoint "$volume" -nobrowse >/dev/null 2>&1; then
+  start_fixture --markers --quit-after 120
+  "$binary" record -w "$window_id" -o "$volume/no-duration.mp4" > "$work/disk-preflight.out" 2>&1
+  exit_code=$?
+  check "disk preflight: exit 1 without --duration on a small volume" "$(( exit_code == 1 ))"
+  check "disk preflight: explains the space needed" "$(grep -q 'Not enough disk space' "$work/disk-preflight.out" && print 1 || print 0)"
+  check "disk preflight: creates nothing" "$([[ -z "$(print -l "$volume"/*.mp4(N) "$volume"/.*.snapparazzi-*(N))" ]] && print 1 || print 0)"
+  "$binary" record -w "$window_id" --duration 30 -o "$volume/low.mp4" > "$work/disk-low.out" 2>&1 &
+  record_pid=$!
+  perl -e 'select(undef, undef, undef, 3)'
+  mkfile 200m "$volume/filler" 2>/dev/null
+  wait "$record_pid"
+  exit_code=$?
+  check "low disk during recording: exit 1" "$(( exit_code == 1 ))"
+  check "low disk during recording: reports low disk space" "$(grep -q 'low disk space' "$work/disk-low.out" && print 1 || print 0)"
+  "$inspect" "$volume/low.mp4" > "$work/low.json" 2>/dev/null
+  check "low disk during recording: kept file stops well before 30 s" "$(json "$work/low.json" "int(2<r['duration']<15)")"
+  hdiutil detach "$volume" -force >/dev/null 2>&1
+else
+  check "disk image for the low-space test could be created" 0
+fi
+
 stop_fixture
 
 if (( failures > 0 )); then

@@ -1,6 +1,6 @@
 # 錄影與音訊驗證計畫、Mac 操作手冊
 
-日期：2026-10-30。狀態：**規劃文件，錄影功能及下列新增測試尚未實作、尚未執行。** 本文件用來驗收後續實作，不代表目前 binary 已經支援 `record`。
+日期：2026-10-30。狀態：**錄影功能已實作；L1–L3 已在 Mac 執行，L4 一小時長錄見開發交接。** 實際的自動化對應：L2＝`make test`（含 `make test-recording`），L3＝`make recording-acceptance`，L4＝`make recording-long-run`；未能自動化或未執行的項目列於[開發交接](2026-10-30-recording-progress.md)的「未驗證／限制」。
 
 ## 1. 如何使用這份文件
 
@@ -10,7 +10,7 @@
 
 使用者提供的 Mac 執行輸出顯示：`tests/run-tests.sh` 的 53 項測試及 `tests/install-tests.sh` 的 7 項測試全部通過，release build 使用 warnings-as-errors 也成功。環境為 macOS 26.5.2、SDK 26.5、Apple Swift 6.3.3、arm64，使用 Command Line Tools，沒有選用完整 Xcode。這是使用者回報的既有功能基準，不是雲端代理在 Mac 親自執行的結果，也尚未驗證錄影 API。該次輸出未含 commit SHA；重構前須補記當次 HEAD，並在程式版本有變動時重跑。先前靜態盤點的 55／9 為誤計，已更正；後續不得刪除測試來消除回歸。
 
-以下 `make test-recording`、`make recording-inspect`、`.build/recording-inspect` 都是**待實作的測試介面**，目前不能當成已存在的命令。`make test` 是既有介面。實機 smoke 採本文件手動操作，不另要求尚未定義的 smoke target。
+`make test-recording`、`make recording-inspect`、`.build/recording-inspect`、`make recording-acceptance`、`make recording-long-run` 已實作。`make test` 是既有介面。實機案例大多已由 `make recording-acceptance` 以腳本化的 fixture App 自動執行；需要實體操作或改動系統設定的案例仍依本文件手動進行。
 
 ## 2. 驗證層級與交付門檻
 

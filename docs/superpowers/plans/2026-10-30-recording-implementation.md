@@ -1,6 +1,6 @@
 # Snapparazzi 錄影功能逐步實作計畫
 
-狀態：**Task0獨立probe已在Mac編譯並完成部分技術gate（App範圍、時鐘、畫面縮放），其餘待測；Task1、2完成；Task3～16尚未開始。** 進度與證據範圍見[開發交接](2026-10-30-recording-progress.md)。配套：[產品／技術規格](../specs/2026-10-30-recording-design.md)、[驗證手冊](2026-10-30-recording-validation.md)。
+狀態：**Task0獨立probe已在Mac編譯並完成部分技術gate（App範圍、時鐘、畫面縮放），其餘待測；Task1～15完成，Task16實機驗收見開發交接（含未驗證項）。** 進度與證據範圍見[開發交接](2026-10-30-recording-progress.md)。配套：[產品／技術規格](../specs/2026-10-30-recording-design.md)、[驗證手冊](2026-10-30-recording-validation.md)。
 
 目的：讓不熟悉此專案或影音 API 的模型，也能依明確輸入、修改範圍與完成條件逐步工作。不要一次貼入整套錄影程式。每次只執行一個 task，完成測試與交接紀錄再往下。
 

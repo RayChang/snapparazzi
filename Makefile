@@ -29,7 +29,7 @@ FIXTURE_SOURCES := $(shell find tests/RecordingFixtureApp -type f -name '*.swift
 FIXTURE_BINARY := $(BUILD_DIR)/recording-fixture-app
 FIXTURE_APP := $(BUILD_DIR)/RecordingFixture.app
 
-.PHONY: all build test test-recording recording-inspect recording-acceptance install clean FORCE
+.PHONY: all build test test-recording recording-inspect recording-acceptance recording-long-run install clean FORCE
 
 all: build
 
@@ -76,6 +76,10 @@ $(FIXTURE_APP): $(FIXTURE_BINARY)
 # Opt-in real recordings on this Mac (needs Screen Recording/Microphone permission and a GUI).
 recording-acceptance: build $(INSPECT_BINARY) $(FIXTURE_APP)
 	tests/recording-acceptance.sh
+
+# Opt-in long both-mode run (DURATION=seconds, default 3600).
+recording-long-run: build $(INSPECT_BINARY) $(FIXTURE_APP)
+	tests/recording-long-run.sh
 
 test-recording: $(TEST_BINARY)
 	$(TEST_BINARY)
