@@ -168,9 +168,11 @@
 - **5秒內沒有完整畫面**（`make recording-acceptance` 8b）：ScreenCaptureKit 對靜止視窗也持續送畫面，沒有自然方式讓它不送，因此以測試用環境變數`SNAPPARAZZI_TEST_IGNORE_VIDEO=1`讓 record 丟棄所有畫面，其餘為正式流程：約5秒後以「No video frame within 5 seconds」exit 1，輸出與 stage 資料夾都不留下。
 - 麥克風軌同步檢查在 MacBook 喇叭低於 20% 時會暫時把音量設為 30%，測完還原。外接螢幕拔除、喇叭為 6% 的狀態下重跑：10/10 嗶聲配對，offset 18～67 ms，喇叭還原為 0.0625（`make recording-microphone` 12項全過）。
 
-## 未驗證／外部阻擋
+- **macOS 14 實機**（CI `macos14` job，GitHub `macos-14` runner，未在使用者電腦安裝任何東西）：macOS 14.8.9、Xcode 16（SDK 15.2、Swift 6.0.3）以本機預設目標編譯（`minos 14.0`，即一行安裝在 macOS 14 會得到的 binary）；截圖 CLI 53項、record 參數 109項全過；`record` 實際執行 exit 1、顯示「record requires macOS 15 or later」、不產生檔案。此 job 首次執行抓到 Xcode 16 編譯器無法在合理時間內推斷`RecordingPipeline.nudge`中一行`map`的型別而整個建置失敗（Swift 6.3 可編），代表 macOS 14／Xcode 16 使用者的一行安裝會失敗；已改寫為明確型別的迴圈（`4974db5`）。
 
-- **在 macOS 14 實機執行`record`走到「需要 macOS 15」分支**：本機與 CI 都是 macOS 26，沒有 macOS 14 機器；使用者選擇不安裝 macOS 14 虛擬機（需安裝 tart 並下載約 25–30 GB），以編譯與連結層級的證據（見上）為準。
+## 未驗證項目
+
+無。下列為文件化的限制。
 
 ## 文件化的限制（非待驗證項）
 

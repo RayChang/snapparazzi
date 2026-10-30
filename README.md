@@ -106,7 +106,7 @@ snapparazzi record --help
 
 **停止與失敗 / Stopping and failures.** `Ctrl-C`、`SIGTERM` 或 `--duration` 會正常收尾，結束碼 0。錄影期間先寫入輸出位置旁的暫存資料夾（`.<檔名>.snapparazzi-*`），完成檢查後才以不覆寫的方式移到最終路徑。寫入或混音失敗時會保留暫存檔並顯示路徑；`both` 混音時再按一次 `Ctrl-C` 會取消混音，保留含兩條獨立音軌的 MOV。`Ctrl-C`, `SIGTERM` and `--duration` finish normally (exit 0). Recording goes to a staging folder next to the output and is moved into place only after it is checked, never overwriting. Failures keep the staged file and print its path; a second `Ctrl-C` while `both` is mixing cancels the mix and keeps a MOV with two separate audio tracks.
 
-**需求 / Requirements.** 錄影需要 macOS 15 以上；本機編譯需要 macOS 15 以上的 SDK（Xcode 16 或對應的 Command Line Tools）。截圖功能不受影響。Recording needs macOS 15+, and building needs a macOS 15+ SDK (Xcode 16 or matching Command Line Tools).
+**需求 / Requirements.** 錄影需要 macOS 15 以上；本機編譯需要 macOS 15 以上的 SDK（Xcode 16 或對應的 Command Line Tools）。在 macOS 14 上截圖功能照常可用，`record` 會提示需要 macOS 15（CI 在 macOS 14 上驗證）。Recording needs macOS 15+, and building needs a macOS 15+ SDK (Xcode 16 or matching Command Line Tools). On macOS 14 screenshots work and `record` explains it needs macOS 15 (checked in CI on macOS 14).
 
 ## 壓縮與效能 / Compression and performance
 
