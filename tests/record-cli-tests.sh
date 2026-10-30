@@ -134,6 +134,16 @@ assert_contains "record help states the macOS requirement" "$last_output" "macOS
 assert_contains "record help explains the audio scope" "$last_output" "聲音範圍 / AUDIO SCOPE"
 assert_contains "record help warns about same-app audio" "$last_output" "same"
 assert_contains "record help documents MP4 output" "$last_output" "--output <file.mp4>"
+assert_contains "record help walks through the steps" "$last_output" "怎麼錄 / HOW TO RECORD"
+assert_contains "record help says --window is required" "$last_output" "Required; there is no default."
+assert_contains "record help gives the audio default" "$last_output" "Default: none"
+assert_contains "record help explains every audio mode" "$last_output" "both    app audio and microphone"
+assert_contains "record help gives the duration default" "$last_output" "Default: no limit; stop with Ctrl-C."
+assert_contains "record help gives the output default" "$last_output" "Default: ~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-<PID>.mp4"
+assert_contains "record help gives the fps default" "$last_output" "Default: 30"
+assert_contains "record help gives the codec default" "$last_output" "Default: h264"
+assert_contains "record help gives the size default" "$last_output" "Default: the window's native pixel size"
+assert_contains "record help has troubleshooting" "$last_output" "常見問題 / TROUBLESHOOTING"
 
 run_cli record
 assert_equal "record without a window is a usage error" "2" "$last_status"
