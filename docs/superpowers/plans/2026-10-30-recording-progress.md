@@ -42,6 +42,8 @@
 | mic授權歸屬 | 首次`--audio mic`彈出授權並允許後，使用者TCC.db新增的是`com.googlecode.iterm2`（啟動此工作階段的終端機），**不是**probe binary（即使已嵌入Info.plist與穩定identifier）。→ 授權歸「負責的App」；換終端機或由其他App啟動需重新授權。拒絕／重新允許尚未測 |
 | mic（內建麥克風） | **48kHz、mono**、每buffer 512 samples（約10.7ms）；PTS同host clock域，抵達延遲約13～23ms；**首個mic PTS比首張畫面晚704ms**；尾端buffer越過終點約6ms（probe未做sample級裁切）。音量包絡顯示說話段−29～−35dB、底噪約−55dB |
 | both（換成藍牙耳機） | 1 video＋2 AAC（track2 system、track3 mic），無backpressure或掉資料。**mic變成24kHz、mono、每buffer 480 samples**（使用者此時改用藍牙耳機，推測為耳機通話模式）；mic晚238ms、system晚120ms開始。system peak 0.88，接近滿刻度 |
+| 停止（SIGINT） | `both`、`--duration 60`、5秒後`kill -INT`：exit 0、success、檔長4.508秒（啟動約0.5秒後才有首張畫面）；system seen＝written 219，音軌止於4.5067秒（距終點1.7ms），stopCapture期間仍收進終點前的在途音訊；screen／mic各1個越過終點被丟棄並計數 |
+| 停止（SIGTERM）＋HEVC | 同上改`kill -TERM`、`--codec hevc`：exit 0、video `hvc1`、1 video＋2 AAC、檔長4.530秒。mic止於終點，**system止於4.511秒，比終點少約20ms（一個buffer）**：停止時正在錄的那個system buffer不會送出。→ stopCapture返回不保證終點前音訊全部送達，規格5.3第8條的尾端補靜音是必要的 |
 | 媒體檢查 | 所有短片exit 0、writer completed、完整解碼；none為1 video、system／mic為1 video＋1 AAC、both為1 video＋2 AAC |
 | 工具陷阱 | `afconvert`轉出的WAV**忽略音軌前段的empty edit**（mic.mov轉出9.37秒，而非10秒），會把延遲音軌移到0；AVAssetReader則保留offset並補靜音。驗證工具只能用遵守edit list的AVFoundation |
 
@@ -57,7 +59,7 @@
 
 接續工作：
 
-1. mic拒絕／重新允許、HEVC、Ctrl-C收尾；錄影中切換預設麥克風（應維持起始裝置）與拔除裝置。
+1. mic拒絕／重新允許；錄影中切換預設麥克風（應維持起始裝置）與拔除裝置；終端機前景Ctrl-C（已以`kill -INT/-TERM`驗證signal路徑）。
 2. Retina（內建螢幕）、resize、最小化／Space／關閉的可觀測差異。
 3. 合成fixture、雙AAC混音與壓縮video passthrough；驗證H264/HEVC及延遲音軌。
 4. 閃光＋click素材的實際音畫同步；舊系統weak linking。Task0未全部完成前不標為完成。
