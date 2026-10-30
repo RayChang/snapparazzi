@@ -28,8 +28,10 @@ INSPECT_BINARY := $(BUILD_DIR)/recording-inspect
 FIXTURE_SOURCES := $(shell find tests/RecordingFixtureApp -type f -name '*.swift' 2>/dev/null | LC_ALL=C sort)
 FIXTURE_BINARY := $(BUILD_DIR)/recording-fixture-app
 FIXTURE_APP := $(BUILD_DIR)/RecordingFixture.app
+DEVICE_SOURCES := $(shell find tests/RecordingAudioDevice -type f -name '*.swift' 2>/dev/null | LC_ALL=C sort)
+DEVICE_BINARY := $(BUILD_DIR)/recording-audio-device
 
-.PHONY: all build test test-recording recording-inspect recording-acceptance recording-long-run install clean FORCE
+.PHONY: all build test test-recording recording-inspect recording-acceptance recording-long-run recording-microphone install clean FORCE
 
 all: build
 
@@ -76,6 +78,15 @@ $(FIXTURE_APP): $(FIXTURE_BINARY)
 # Opt-in real recordings on this Mac (needs Screen Recording/Microphone permission and a GUI).
 recording-acceptance: build $(INSPECT_BINARY) $(FIXTURE_APP)
 	tests/recording-acceptance.sh
+
+$(DEVICE_BINARY): $(DEVICE_SOURCES) $(BUILD_INPUTS) Makefile
+	$(SWIFTC) $(SWIFT_FLAGS) $(DEVICE_SOURCES) -o $(DEVICE_BINARY)
+
+# Opt-in microphone checks: mic-track sync through the MacBook speakers (audible beeps)
+# and a microphone removed mid-recording. Temporarily changes the default input and
+# restores it afterwards.
+recording-microphone: build $(INSPECT_BINARY) $(FIXTURE_APP) $(DEVICE_BINARY)
+	tests/recording-microphone.sh
 
 # Opt-in long both-mode run (DURATION=seconds, default 3600).
 recording-long-run: build $(INSPECT_BINARY) $(FIXTURE_APP)

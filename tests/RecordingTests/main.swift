@@ -213,6 +213,41 @@ cases.append(("session: preflight, exclusive commit, cleanup", {
     check(!FileManager.default.fileExists(atPath: session.stageDirectory.path), "commit removes the stage folder")
 }))
 
+cases.append(("microphone permission: denied or restricted never prompts and fails", {
+    var requests = 0
+    let deny = { () async -> Bool in requests += 1; return false }
+    let allow = { () async -> Bool in requests += 1; return true }
+    check(await ensureMicrophonePermission(status: .authorized, request: deny), "authorized passes without asking")
+    check(requests == 0, "authorized does not prompt")
+    check(!(await ensureMicrophonePermission(status: .denied, request: allow)), "denied fails")
+    check(!(await ensureMicrophonePermission(status: .restricted, request: allow)), "restricted fails")
+    check(requests == 0, "denied and restricted do not prompt (\(requests))")
+    check(!(await ensureMicrophonePermission(status: .notDetermined, request: deny)), "a declined prompt fails")
+    check(await ensureMicrophonePermission(status: .notDetermined, request: allow), "an accepted prompt passes")
+    check(requests == 2, "not-determined prompts once per call (\(requests))")
+}))
+
+cases.append(("record: microphone asked only for mic/both; denial stops before any file", {
+    let signals = RecordingSignals()
+    for mode in AudioMode.allCases {
+        let directory = temporaryDirectory()
+        let output = directory.appendingPathComponent("out/clip.mp4")
+        var options = RecordingOptions()
+        options.windowID = 4_294_967_000 // no such window
+        options.audio = mode
+        options.outputPath = output.path
+        var asked = 0
+        var command = RecordCommand(options: options, signals: signals)
+        command.screenAccess = { true }
+        command.microphoneAccess = { asked += 1; return false }
+        let status = await command.run()
+        check(status == 1, "\(mode.rawValue): exit 1 (\(status))")
+        check(asked == (mode.capturesMicrophone ? 1 : 0), "\(mode.rawValue): microphone asked \(asked) time(s)")
+        check((try? FileManager.default.contentsOfDirectory(atPath: directory.path))?.isEmpty == true,
+              "\(mode.rawValue): nothing created next to the output")
+    }
+}))
+
 cases.append(("stop reasons: failures are never hidden by a normal stop", {
     check(RecordingStopReason.interrupt.merged(with: .windowClosed) == .windowClosed, "window closed outranks Ctrl-C")
     check(RecordingStopReason.windowClosed.merged(with: .terminate) == .windowClosed, "a later SIGTERM keeps the failure")

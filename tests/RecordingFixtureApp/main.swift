@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 @preconcurrency import AVFoundation
 
 // A scripted window for real-recording acceptance tests, launched as its own app
@@ -10,6 +11,7 @@ import AppKit
 //   --script ACTIONS   comma-separated NAME@SECONDS, e.g. minimize@3,restore@6,
 //                      resize@8:420x620,close@11,quit@12 (close destroys the window)
 //   --quit-after S     terminate after S seconds (default 600)
+//   --output-device UID  play through this CoreAudio device instead of the default output
 
 final class Fixture: NSObject, NSApplicationDelegate, @unchecked Sendable {
     private var window: NSWindow?
@@ -116,8 +118,30 @@ final class Fixture: NSObject, NSApplicationDelegate, @unchecked Sendable {
             return noErr
         }
         engine.attach(source)
+        if let uid = arguments["--output-device"] { useOutputDevice(uid) }
         engine.connect(source, to: engine.mainMixerNode, format: format)
         try? engine.start()
+    }
+
+    // Routes only this app's audio (the system default output is left alone).
+    private func useOutputDevice(_ uid: String) {
+        var device = AudioObjectID(0)
+        var cfUID = uid as CFString
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var property = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyTranslateUIDToDevice,
+                                                  mScope: kAudioObjectPropertyScopeGlobal,
+                                                  mElement: kAudioObjectPropertyElementMain)
+        let found = withUnsafeMutablePointer(to: &cfUID) {
+            AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &property,
+                                       UInt32(MemoryLayout<CFString>.size), $0, &size, &device)
+        }
+        guard found == noErr, device != 0, let unit = engine.outputNode.audioUnit else {
+            print("OUTPUT_DEVICE not found: \(uid)")
+            return
+        }
+        AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
+                             &device, UInt32(MemoryLayout<AudioObjectID>.size))
+        print("OUTPUT_DEVICE \(uid)")
     }
 }
 

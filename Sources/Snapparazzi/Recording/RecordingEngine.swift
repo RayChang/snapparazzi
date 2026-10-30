@@ -67,6 +67,9 @@ final class RecordingSignals: @unchecked Sendable {
 struct RecordCommand {
     let options: RecordingOptions
     let signals: RecordingSignals
+    // The real permission checks by default; tests substitute fakes.
+    var screenAccess: () -> Bool = ensureScreenCapturePermission
+    var microphoneAccess: () async -> Bool = { await ensureMicrophonePermission() }
 
     private func error(_ message: String) -> Int32 {
         fputs("錯誤 / Error: \(message)\n", stderr)
@@ -84,10 +87,10 @@ struct RecordCommand {
         do { try RecordingSession.preflight(finalURL) } catch { return self.error(error.localizedDescription) }
 
         print("📸 Snapparazzi record")
-        guard ensureScreenCapturePermission() else { return 1 }
+        guard screenAccess() else { return 1 }
         if cancelledBeforeStart { return 0 }
         if options.audio.capturesMicrophone {
-            guard await ensureMicrophonePermission() else { return 1 }
+            guard await microphoneAccess() else { return 1 }
             if cancelledBeforeStart { return 0 }
         }
 

@@ -189,6 +189,7 @@ Real recordings are opt-in because they need Screen Recording/Microphone permiss
 ```sh
 make recording-acceptance        # every audio mode/codec, A/V sync, app-only audio, minimize, resize, quit, signals
 DURATION=3600 make recording-long-run   # one hour of --audio both: drift, memory, finishing time, disk
+make recording-microphone        # mic-track sync (audible beeps) and a mic removed mid-recording; restores the default input
 make recording-inspect && .build/recording-inspect FILE.mp4 [--sync]
 ```
 

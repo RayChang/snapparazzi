@@ -20,13 +20,17 @@ func ensureScreenCapturePermission() -> Bool {
 
 // Microphone access for record --audio mic|both. Denied or restricted access is an
 // error; recording never silently falls back to no microphone.
-func ensureMicrophonePermission() async -> Bool {
-    switch AVCaptureDevice.authorizationStatus(for: .audio) {
+// `status` and `request` default to the real AVFoundation calls; tests pass fakes.
+func ensureMicrophonePermission(
+    status: AVAuthorizationStatus = AVCaptureDevice.authorizationStatus(for: .audio),
+    request: () async -> Bool = { await AVCaptureDevice.requestAccess(for: .audio) }
+) async -> Bool {
+    switch status {
     case .authorized:
         return true
     case .notDetermined:
         print("Snapparazzi 需要麥克風權限 / Snapparazzi needs Microphone permission.")
-        if await AVCaptureDevice.requestAccess(for: .audio) { return true }
+        if await request() { return true }
     default:
         break
     }

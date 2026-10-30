@@ -33,7 +33,7 @@ struct CLIOptions {
     var maxDimension: Int?
 }
 
-enum AudioMode: String {
+enum AudioMode: String, CaseIterable {
     case none, system, mic, both
 
     var capturesSystem: Bool { self == .system || self == .both }
