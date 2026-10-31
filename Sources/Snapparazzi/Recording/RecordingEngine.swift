@@ -114,6 +114,8 @@ struct RecordCommand {
             return error("找不到可錄製的視窗 \(windowID) / Window \(windowID) is not available for recording.")
         }
         let filter = SCContentFilter(desktopIndependentWindow: window)
+        // Measured before the real stream starts, so even the first frame is cropped.
+        let initialCrop = await measureWindowCrop(filter: filter)
         let scale = Double(filter.pointPixelScale)
         let sourceWidth = Double(filter.contentRect.width) * scale
         let sourceHeight = Double(filter.contentRect.height) * scale
@@ -165,7 +167,8 @@ struct RecordCommand {
         }
         let engine: RecordingEngine
         do {
-            engine = try RecordingEngine(options: options, filter: filter, width: width, height: height,
+            engine = try RecordingEngine(options: options, filter: filter, windowID: windowID, initialCrop: initialCrop,
+                                         width: width, height: height,
                                          microphoneID: microphoneID, session: session, signals: signals)
         } catch {
             session.removeStage()
@@ -202,6 +205,15 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private var lastDiskCheck = 0.0
     private var lastMicrophoneCheck = 0.0
     private let microphoneID: String?
+    // Cropping the capture to the window frame (see WindowCrop.swift).
+    private let windowID: CGWindowID
+    private var frameSize: CGSize
+    private var crop: CGRect?
+    private var cropFrame: CGSize?      // the frame size `crop` was computed for
+    private var reconfiguring = false   // a sourceRect change is in flight
+    private var cropFailed = false
+    private var cropChanges = 0
+    private var lastFrameCheck = 0.0
     // Test hook for the acceptance suite: drop every screen sample so the real
     // 5-second "no video frame" timeout can be exercised (ScreenCaptureKit keeps
     // sending frames even for a static window, so there is no natural way).
@@ -209,12 +221,17 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private var stopContinuation: CheckedContinuation<Void, Never>?
     private var stopRequested = false
 
-    init(options: RecordingOptions, filter: SCContentFilter, width: Int, height: Int,
-         microphoneID: String?, session: RecordingSession, signals: RecordingSignals) throws {
+    init(options: RecordingOptions, filter: SCContentFilter, windowID: CGWindowID, initialCrop: CGRect?,
+         width: Int, height: Int, microphoneID: String?, session: RecordingSession,
+         signals: RecordingSignals) throws {
         self.options = options
         self.session = session
         self.signals = signals
         self.filter = filter
+        self.windowID = windowID
+        frameSize = filter.contentRect.size
+        crop = initialCrop
+        cropFrame = initialCrop == nil ? nil : filter.contentRect.size
         self.microphoneID = microphoneID
         var sources: [AudioSource] = []
         if options.audio.capturesSystem { sources.append(.system) }
@@ -236,6 +253,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         config.excludesCurrentProcessAudio = true
         config.captureMicrophone = options.audio.capturesMicrophone
         if let microphoneID { config.microphoneCaptureDeviceID = microphoneID }
+        if let initialCrop { config.sourceRect = initialCrop }
         configuration = config
         super.init()
     }
@@ -309,7 +327,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         do { try pipeline.tick(hostNow: now) } catch { return stopOnQueue(.failure(error.localizedDescription)) }
         guard pipeline.sessionSeconds(now) != nil else {
             if uptime() - startUptime > RecordingEngine.firstFrameTimeout {
-                stopOnQueue(.failure("5 秒內沒有收到畫面（視窗可能已最小化，請先還原）/ No video frame within 5 seconds (the window may be minimized; restore it first)"))
+                stopOnQueue(.failure("5 秒內沒有收到畫面（視窗可能已最小化，請先還原；或螢幕已鎖定）/ No video frame within 5 seconds (the window may be minimized, so restore it first, or the screen may be locked)"))
             }
             return
         }
@@ -324,6 +342,10 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             if AVCaptureDevice(uniqueID: microphoneID) == nil {
                 stopOnQueue(.failure("麥克風已移除 / The microphone was disconnected"))
             }
+        }
+        if uptime() - lastFrameCheck >= 1 {
+            lastFrameCheck = uptime()
+            checkWindowFrame()
         }
         if uptime() - lastDiskCheck >= 5 {
             lastDiskCheck = uptime()
@@ -365,6 +387,13 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
                       let raw = info[.status] as? Int, let status = SCFrameStatus(rawValue: raw) else { return }
                 switch status {
                 case .complete:
+                    // The window started needing a crop mid-recording (e.g. entered full
+                    // screen). This frame is still written: a static window may send no
+                    // new frame after the change, and skipping would freeze the video.
+                    if crop == nil, !reconfiguring, !cropFailed,
+                       let needed = neededWindowCrop(info, frame: frameSize) {
+                        setCrop(needed)
+                    }
                     let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
                     if let end = pipeline.endpointSeconds, let at = pipeline.sessionSeconds(pts), at >= end { return }
                     guard let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
@@ -384,6 +413,44 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             }
         } catch {
             stopOnQueue(.failure(error.localizedDescription))
+        }
+    }
+
+    // MARK: Cropping to the window frame (queue)
+
+    // A crop is only right for the frame size it was computed for: when the window
+    // changes size (e.g. leaves full screen), drop it and measure again.
+    private func checkWindowFrame() {
+        guard let size = windowFrameSize(windowID) else { return }
+        frameSize = size
+        if let cropFrame, crop != nil, !reconfiguring,
+           abs(cropFrame.width - size.width) > 0.5 || abs(cropFrame.height - size.height) > 0.5 {
+            setCrop(nil)
+        }
+    }
+
+    private func setCrop(_ newCrop: CGRect?) {
+        guard let stream else { return }
+        reconfiguring = true
+        let previous = configuration.sourceRect
+        configuration.sourceRect = newCrop ?? .zero // .zero captures everything
+        let config = configuration
+        let frame = frameSize
+        Task {
+            var failed = false
+            do { try await stream.updateConfiguration(config) } catch { failed = true }
+            self.queue.async {
+                self.reconfiguring = false
+                if failed {
+                    // Keep recording as before (letterboxed) rather than retrying every frame.
+                    self.configuration.sourceRect = previous
+                    self.cropFailed = true
+                } else {
+                    self.crop = newCrop
+                    self.cropFrame = newCrop == nil ? nil : frame
+                    self.cropChanges += 1
+                }
+            }
         }
     }
 
@@ -517,6 +584,9 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             if audio.buffers == 0 {
                 lines.append("    警告：沒有收到任何 \(source.rawValue) 音訊資料，這條音軌是靜音 / Warning: no \(source.rawValue) audio arrived; this track is silent.")
             }
+        }
+        if crop != nil || cropChanges > 0 {
+            lines.append("  裁切 / cropped: 只錄視窗本身，略過視窗外多擷取的區域（例如全螢幕 Chrome 的工具列區）/ recorded the window frame only, without the extra area around it (e.g. full-screen Chrome's toolbar area)")
         }
         lines.append("  停止原因 / stopped by: \(reason.summary)")
         print(lines.joined(separator: "\n"))

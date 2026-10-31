@@ -308,8 +308,9 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
 常見問題 / TROUBLESHOOTING
   找不到 window ID：先用 snapparazzi --list 確認 ID；視窗關閉後重新開啟，ID 會改變。
   Window ID not found: check it with snapparazzi --list; a reopened window has a new ID.
-  5 秒內沒有收到畫面：視窗可能已最小化，請先還原。
-  No video frame within 5 seconds: the window is probably minimized; restore it.
+  5 秒內沒有收到畫面：視窗可能已最小化（請先還原），或螢幕已鎖定。
+  No video frame within 5 seconds: the window is probably minimized (restore it),
+  or the screen is locked.
   輸出檔已存在：換一個檔名，或不加 --output 使用自動檔名。
   Output already exists: choose another name, or omit --output for an automatic one.
   需要權限或錄不到聲音：見上方「權限」與「聲音範圍」。
