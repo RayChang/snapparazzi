@@ -34,7 +34,7 @@ To update, run `snapparazzi update` (1.3.1 or later; `--check` only checks): it 
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
-  | SNAPPARAZZI_REF=v1.3.0 sh
+  | SNAPPARAZZI_REF=v1.3.1 sh
 
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
   | SNAPPARAZZI_BIN="$HOME/bin" sh
