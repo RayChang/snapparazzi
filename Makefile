@@ -52,7 +52,10 @@ $(METADATA): $(PLIST) FORCE
 
 $(BINARY): $(SOURCES) $(METADATA) $(PLIST) $(BUILD_INPUTS) Makefile
 	$(SWIFTC) $(SWIFT_FLAGS) $(SOURCES) $(METADATA) $(LINK_FLAGS) -o $(BINARY)
-	codesign --force --sign - --identifier $(BUNDLE_ID) $(BINARY)
+	@# codesign reports "replacing existing signature" on stderr every time (the linker
+	@# already ad-hoc signs); keep that out of the installer, show it only on failure.
+	codesign --force --sign - --identifier $(BUNDLE_ID) $(BINARY) 2> $(BUILD_DIR)/codesign.log \
+		|| { cat $(BUILD_DIR)/codesign.log >&2; exit 1; }
 
 $(TEST_BINARY): $(LIBRARY_SOURCES) $(SUPPORT_SOURCES) $(TEST_SOURCES) $(BUILD_INPUTS) Makefile
 	$(SWIFTC) $(SWIFT_FLAGS) $(LIBRARY_SOURCES) $(SUPPORT_SOURCES) $(TEST_SOURCES) -o $(TEST_BINARY)
