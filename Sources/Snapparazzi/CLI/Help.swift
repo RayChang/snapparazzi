@@ -274,11 +274,18 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
   調整大小：影片尺寸不變，畫面等比例縮放並貼齊左上角，多出的部分補黑。
   關閉視窗或結束 App：錄影停止並保留已錄內容（結束碼 1）。
   Minimized: black after 1 second, resumes when restored.
-  Another Space or full screen: keeps recording.
+  Another Space or full screen: keeps recording. But Chrome stops drawing web
+  video while its window is not visible (another Space), so the video area is
+  black (captions and sound continue). To record it in the background, quit
+  Chrome (Cmd-Q) and reopen it with the command above (only for that launch).
   Resized: the video size stays fixed; the picture is scaled to fit, top-left.
   Closed window or quit app: recording stops and keeps what it has (exit 1).
 
 權限 / PERMISSIONS
+  但 Chrome 在視窗看不到時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域
+  是黑的（字幕與聲音照常）。要在背景錄，先完全結束 Chrome（⌘Q），再用下面的
+  指令開啟（只對這次開啟有效）：
+    open -a "Google Chrome" --args --disable-backgrounding-occluded-windows
   需要「螢幕與系統錄音」權限；--audio mic 或 both 另需「麥克風」權限。第一次執行會
   跳出詢問，也可到「系統設定 → 隱私權與安全性」開啟。權限通常記在你使用的
   Terminal App（例如 Terminal、iTerm2）名下。麥克風權限被拒絕時不會改錄成無聲，
