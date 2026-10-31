@@ -28,9 +28,9 @@ Download the source, build it locally, and install it to `~/.local/bin/snapparaz
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh
 ```
 
-重新執行同一命令即可更新。安裝程式會下載指定版本的完整原始碼壓縮檔，以同一份 Makefile 在本機編譯；失敗時不會動到已安裝的版本。安裝特定 tag／分支／commit 或自訂 bin 目錄：
+更新：執行 `snapparazzi update`（1.3.1 起；`--check` 只查詢不安裝），它會查詢最新 Release，有新版時以同一套安裝程式在本機編譯並取代原位置的 snapparazzi。1.3.0 及更早的版本請重新執行上面的命令。安裝程式會下載指定版本的完整原始碼壓縮檔，以同一份 Makefile 在本機編譯；失敗時不會動到已安裝的版本。安裝特定 tag／分支／commit 或自訂 bin 目錄：
 
-Run the same command again to update. The installer downloads the full source archive for one ref and builds it with the same Makefile; a failed install leaves the installed version untouched. To install a specific tag, branch or commit, or choose another bin directory:
+To update, run `snapparazzi update` (1.3.1 or later; `--check` only checks): it looks up the latest release and, if it is newer, builds it with the same installer and replaces snapparazzi where it is installed. On 1.3.0 or earlier, run the command above again. The installer downloads the full source archive for one ref and builds it with the same Makefile; a failed install leaves the installed version untouched. To install a specific tag, branch or commit, or choose another bin directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
@@ -58,6 +58,7 @@ snapparazzi record -w 12345 --audio both -o ~/Movies/demo.mp4
 
 snapparazzi --help
 snapparazzi record --help
+snapparazzi update                  # 更新到最新版 / update to the latest release
 ```
 
 若想同時截取或錄製多個視窗，請開啟多個 Terminal 分頁，每個程序選一個視窗。
@@ -104,7 +105,7 @@ Recording needs macOS 15 or later; on macOS 14, `record` explains this and exits
 
 **麥克風 / Microphone.** 使用開始錄影時的預設輸入裝置，錄影中切換系統預設不會跟著換；該裝置被拔除時錄影停止並保留已錄內容。USB 麥克風的時鐘若與系統有些微偏差，Snapparazzi 會持續補償，長時間錄影也能保持同步。The default input at start is used for the whole recording, even if the system default changes; if that device is unplugged the recording stops and keeps what it has. Small clock drift of USB microphones is corrected continuously, so long recordings stay in sync.
 
-**視窗狀態 / Window state.** 視窗最小化超過 1 秒時改錄黑畫面，還原後繼續；切換到其他桌面或視窗進入 macOS 全螢幕時照常錄製。網頁影片的全螢幕要看瀏覽器：若另外開新視窗播放（例如部分 Safari 影片），錄到的是原視窗而非全螢幕影片。視窗被關閉或 App 結束時，錄影停止、保留已錄內容並以結束碼 1 結束。調整視窗大小時影片尺寸不變，內容等比例縮放並貼齊左上角。Minimized windows record black after 1 second and resume on restore; other Spaces and macOS full screen keep recording. Browser video full screen depends on the browser: if it plays in a separate window (e.g. some Safari videos), the original window is what gets recorded. Closing the window or quitting the app stops, keeps the recording and exits 1. Resizing keeps the video size; content is scaled to fit, anchored top-left.
+**視窗狀態 / Window state.** 視窗最小化超過 1 秒時改錄黑畫面，還原後繼續；切換到其他桌面或視窗進入 macOS 全螢幕時照常錄製。網頁影片的全螢幕要看瀏覽器：若另外開新視窗播放（例如部分 Safari 影片），錄到的是原視窗而非全螢幕影片。Chrome 在視窗看不到時（例如切到別的桌面）會停止繪製網頁影片，錄到的影片區域是黑的（字幕與聲音照常）；要在背景錄，請先完全結束 Chrome（⌘Q），再用 `open -a "Google Chrome" --args --disable-backgrounding-occluded-windows` 開啟（只對這次開啟有效）。視窗被關閉或 App 結束時，錄影停止、保留已錄內容並以結束碼 1 結束。調整視窗大小時影片尺寸不變，內容等比例縮放並貼齊左上角。Minimized windows record black after 1 second and resume on restore; other Spaces and macOS full screen keep recording. Browser video full screen depends on the browser: if it plays in a separate window (e.g. some Safari videos), the original window is what gets recorded. Chrome stops drawing web video while its window is not visible (e.g. on another Space), so the video area records black while captions and sound continue; to record it in the background, quit Chrome (Cmd-Q) and reopen it with `open -a "Google Chrome" --args --disable-backgrounding-occluded-windows` (applies to that launch only). Closing the window or quitting the app stops, keeps the recording and exits 1. Resizing keeps the video size; content is scaled to fit, anchored top-left.
 
 **停止與失敗 / Stopping and failures.** `Ctrl-C`、`SIGTERM` 或 `--duration` 會正常收尾，結束碼 0。開始前會檢查磁碟空間（指定 `--duration` 時依預估大小，否則至少 1 GiB），錄影中剩餘空間低於 512 MiB 會停止並保留已錄內容。寫入或混音失敗時保留暫存檔並顯示路徑；`both` 混音時再按一次 `Ctrl-C` 會取消混音，保留含兩條獨立音軌的 MOV。`Ctrl-C`, `SIGTERM` and `--duration` finish normally (exit 0). Free space is checked before starting (from the estimated size with `--duration`, otherwise at least 1 GiB), and recording stops, keeping what it has, below 512 MiB. Failures keep the staged file and print its path; a second `Ctrl-C` while `both` is mixing cancels the mix and keeps a MOV with two separate audio tracks.
 
@@ -182,7 +183,7 @@ make test
 make install
 ```
 
-`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, and the installer in an isolated temporary destination. CI runs it on the latest macOS and also builds on macOS 14 with Xcode 16, checking that `record` refuses there.
+`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, the installer in an isolated temporary destination, and `snapparazzi update` against a local fake release and installer. CI runs it on the latest macOS, and again with the newest Xcode 16 on macOS 15, where it also compiles for a macOS 14 deployment target so every macOS 15 API stays behind an availability check. (Running on macOS 14 itself, where `record` refuses, was verified before GitHub retired its macOS 14 runners.)
 
 Real recordings are opt-in because they need Screen Recording/Microphone permission and a logged-in desktop:
 

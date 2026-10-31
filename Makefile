@@ -102,6 +102,7 @@ test: build test-recording
 	tests/run-tests.sh
 	tests/record-cli-tests.sh
 	tests/install-tests.sh
+	tests/update-tests.sh
 
 install: build
 	install -d $(DESTDIR)$(PREFIX)/bin

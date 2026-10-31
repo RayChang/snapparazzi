@@ -38,6 +38,11 @@ func appMain() -> Int32 {
             return 0
         case .record(let options):
             runRecordCommand(options)
+        case .updateHelp:
+            print(updateHelpText)
+            return 0
+        case .update(let checkOnly):
+            return runUpdate(checkOnly: checkOnly)
         }
     } catch let error as CLIUsageError {
         fputs("錯誤 / Error: \(error.message)\n", stderr)

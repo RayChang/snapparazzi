@@ -15,6 +15,8 @@ Snapparazzi — take timed screenshots of one macOS window, or record it to vide
   snapparazzi record --window <id> [options]   錄影，詳見 snapparazzi record --help
                                                record video; see snapparazzi record --help
   snapparazzi --list                           列出視窗與 ID / list windows and their IDs
+  snapparazzi update [--check]                 更新到最新版，詳見 snapparazzi update --help
+                                               update to the latest release
   snapparazzi --help                           顯示這份說明 / show this help
   snapparazzi --version                        顯示版本 / show the version
 
@@ -130,6 +132,12 @@ Snapparazzi — take timed screenshots of one macOS window, or record it to vide
   允許目前使用的 Terminal App，然後重新執行命令。
   On first use, allow your terminal app under System Settings → Privacy & Security →
   Screen & System Audio Recording, then run the command again.
+
+更新 / UPDATING
+  snapparazzi update 會查詢最新版本；有新版時下載原始碼、在本機編譯並取代目前的
+  snapparazzi。snapparazzi update --check 只查詢不安裝。
+  snapparazzi update checks for a newer release, then downloads, builds and
+  replaces the installed snapparazzi. snapparazzi update --check only checks.
 
 同時處理多個視窗 / SEVERAL WINDOWS
   一個程序只處理一個視窗。若要同時截取多個視窗，請在 multiple Terminal tabs/windows
@@ -271,10 +279,17 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
 視窗狀態 / WINDOW STATE
   最小化：超過 1 秒改錄黑畫面，還原後自動繼續。
   移到其他桌面、進入全螢幕：照常錄製。
+  但 Chrome 在視窗看不到時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域
+  是黑的（字幕與聲音照常）。要在背景錄，先完全結束 Chrome（⌘Q），再用下面的
+  指令開啟（只對這次開啟有效）：
+    open -a "Google Chrome" --args --disable-backgrounding-occluded-windows
   調整大小：影片尺寸不變，畫面等比例縮放並貼齊左上角，多出的部分補黑。
   關閉視窗或結束 App：錄影停止並保留已錄內容（結束碼 1）。
   Minimized: black after 1 second, resumes when restored.
-  Another Space or full screen: keeps recording.
+  Another Space or full screen: keeps recording. But Chrome stops drawing web
+  video while its window is not visible (another Space), so the video area is
+  black (captions and sound continue). To record it in the background, quit
+  Chrome (Cmd-Q) and reopen it with the command above (only for that launch).
   Resized: the video size stays fixed; the picture is scaled to fit, top-left.
   Closed window or quit app: recording stops and keeps what it has (exit 1).
 
@@ -308,8 +323,9 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
 常見問題 / TROUBLESHOOTING
   找不到 window ID：先用 snapparazzi --list 確認 ID；視窗關閉後重新開啟，ID 會改變。
   Window ID not found: check it with snapparazzi --list; a reopened window has a new ID.
-  5 秒內沒有收到畫面：視窗可能已最小化，請先還原。
-  No video frame within 5 seconds: the window is probably minimized; restore it.
+  5 秒內沒有收到畫面：視窗可能已最小化（請先還原），或螢幕已鎖定。
+  No video frame within 5 seconds: the window is probably minimized (restore it),
+  or the screen is locked.
   輸出檔已存在：換一個檔名，或不加 --output 使用自動檔名。
   Output already exists: choose another name, or omit --output for an automatic one.
   需要權限或錄不到聲音：見上方「權限」與「聲音範圍」。
@@ -326,4 +342,37 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
   2  命令寫錯：未知選項、缺少 --window、值不合法或用了截圖選項。
      Invalid command line: unknown option, missing --window, invalid value, or a
      screenshot option.
+"""
+
+let updateHelpText = """
+Snapparazzi update — 更新到最新版本 / update to the latest release.
+
+用法 / USAGE
+  snapparazzi update            查詢並安裝最新版本 / check for and install the latest release
+  snapparazzi update --check    只查詢，不安裝 / only check, do not install
+  snapparazzi update --help     顯示這份說明 / show this help
+
+怎麼更新 / HOW IT WORKS
+  1. 向 GitHub 查詢最新的 Release；已是最新版本就直接結束。
+  2. 下載那個版本的原始碼與安裝程式，在本機編譯（約一分鐘），需要 Xcode 或其
+     Command Line Tools（xcode-select --install）。
+  3. 取代目前執行的這個 snapparazzi，位置不變。編譯或安裝失敗時，原本的版本不會被改動。
+  1. Ask GitHub for the latest release; stop if you already have it.
+  2. Download that release's source and installer and build it locally (about a
+     minute); this needs Xcode or its Command Line Tools (xcode-select --install).
+  3. Replace the snapparazzi you ran, in the same place. A failed build or install
+     leaves the installed version untouched.
+
+  1.3.0 及更早的版本沒有這個命令，請重新執行 README 的安裝指令：
+  Versions before 1.3.1 do not have this command; run the install line again:
+    curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh
+
+結束碼 / EXIT STATUS
+  0  已是最新版本、有新版本（--check），或更新成功。
+     Already up to date, an update is available (--check), or the update succeeded.
+  1  無法連線、讀不到版本資訊、沒有寫入權限，或編譯／安裝失敗。
+     No connection, unreadable release information, no write permission, or a
+     failed build or install.
+  2  命令寫錯：update 不支援的選項。
+     Invalid command line: an option update does not support.
 """

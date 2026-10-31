@@ -282,6 +282,36 @@ cases.append(("window list: other Spaces and full screen included, helper window
     check(targets.first { $0.id == 1 }?.listNote == "", "visible windows have no note")
 }))
 
+cases.append(("window crop: full-screen Chrome's extra toolbar area is cut, nothing else", {
+    // Measured on a 1728×1117 pt display (WindowCrop.swift).
+    let hidden = windowCrop(captured: CGSize(width: 1728, height: 1230), frame: CGSize(width: 1728, height: 1084))
+    check(hidden == CGRect(x: 0, y: 146, width: 1728, height: 1084), "toolbar hidden: keep the bottom 1084 pt: \(String(describing: hidden))")
+    let shown = windowCrop(captured: CGSize(width: 1728, height: 1084), frame: CGSize(width: 1728, height: 996))
+    check(shown == CGRect(x: 0, y: 88, width: 1728, height: 996), "toolbar shown: cut the 88 pt toolbar: \(String(describing: shown))")
+    check(windowCrop(captured: CGSize(width: 1081, height: 937), frame: CGSize(width: 1081, height: 937)) == nil,
+          "a normal window is not cropped")
+    check(windowCrop(captured: CGSize(width: 1081.6, height: 937.4), frame: CGSize(width: 1081, height: 937)) == nil,
+          "rounding within 1 pt is not a crop")
+    check(windowCrop(captured: CGSize(width: 1728, height: 1084), frame: CGSize(width: 1200, height: 800)) == nil,
+          "a stale frame from before a size change (different width) is not cropped")
+    check(windowCrop(captured: CGSize(width: 600, height: 400), frame: CGSize(width: 1200, height: 800)) == nil,
+          "a capture smaller than the frame is not cropped")
+    check(windowCrop(captured: CGSize(width: 1728, height: 1230), frame: .zero) == nil, "no frame, no crop")
+
+    // contentRect/contentScale as ScreenCaptureKit reported them for that window.
+    let full = capturedContentSize(contentRect: CGRect(x: 0, y: 0, width: 1522.887794494629, height: 1083.999992609024),
+                                   contentScale: 0.8813008069992065)
+    near(Double(full?.width ?? 0), 1728, 0.5, "captured width at full size")
+    near(Double(full?.height ?? 0), 1230, 0.5, "captured height at full size")
+    let small = capturedContentSize(contentRect: CGRect(x: 0, y: 0, width: 586.6272811889648, height: 367.9999842643738),
+                                    contentScale: 0.339483380317688) // 1280×736 output
+    near(Double(small?.width ?? 0), 1728, 0.5, "captured width with a smaller output")
+    near(Double(small?.height ?? 0), 1084, 0.5, "captured height with a smaller output")
+    check(capturedContentSize(contentRect: .zero, contentScale: 1) == nil, "an empty content rect gives no size")
+    check(capturedContentSize(contentRect: CGRect(x: 0, y: 0, width: 10, height: 10), contentScale: 0) == nil,
+          "a zero scale gives no size")
+}))
+
 cases.append(("stop reasons: failures are never hidden by a normal stop", {
     check(RecordingStopReason.interrupt.merged(with: .windowClosed) == .windowClosed, "window closed outranks Ctrl-C")
     check(RecordingStopReason.windowClosed.merged(with: .terminate) == .windowClosed, "a later SIGTERM keeps the failure")
