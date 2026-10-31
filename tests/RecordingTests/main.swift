@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import CoreMedia
 @preconcurrency import AVFoundation
 
@@ -248,6 +249,37 @@ cases.append(("record: microphone asked only for mic/both; denial stops before a
         check((try? FileManager.default.contentsOfDirectory(atPath: directory.path))?.isEmpty == true,
               "\(mode.rawValue): nothing created next to the output")
     }
+}))
+
+cases.append(("window list: other Spaces and full screen included, helper windows not", {
+    func window(_ id: Int, owner: String, title: String?, onScreen: Bool, layer: Int = 0,
+                alpha: Double = 1, sharing: Int = 1, size: Double = 800) -> [String: Any] {
+        var info: [String: Any] = [
+            kCGWindowNumber as String: id, kCGWindowOwnerPID as String: 100 + id,
+            kCGWindowOwnerName as String: owner, kCGWindowLayer as String: layer,
+            kCGWindowAlpha as String: alpha, kCGWindowSharingState as String: sharing,
+            kCGWindowIsOnscreen as String: onScreen,
+            kCGWindowBounds as String: CGRect(x: 0, y: 0, width: size, height: size).dictionaryRepresentation
+        ]
+        if let title { info[kCGWindowName as String] = title }
+        return info
+    }
+    let targets = windowTargets(from: [
+        // Made-up window data; the names only describe each case.
+        window(1, owner: "Editor", title: "Visible document", onScreen: true),
+        window(2, owner: "Browser", title: "", onScreen: true),                        // untitled but visible
+        window(3, owner: "Browser", title: "Full-screen video", onScreen: false),      // another Space
+        window(4, owner: "Browser", title: nil, onScreen: false),                      // toolbar helper
+        window(5, owner: "Browser", title: "   ", onScreen: false),                    // blank-title helper
+        window(6, owner: "Menu bar item", title: "Menu", onScreen: true, layer: 25),   // not a normal window
+        window(7, owner: "Transparent", title: "Overlay", onScreen: true, alpha: 0),
+        window(8, owner: "Protected", title: "No capture", onScreen: true, sharing: 0),
+        window(9, owner: "Tiny", title: "One pixel", onScreen: true, size: 1)
+    ])
+    check(targets.map(\.id) == [2, 1, 3], "visible windows first, then titled off-screen ones: \(targets.map(\.id))")
+    check(targets.first { $0.id == 3 }?.isOnScreen == false, "the full-screen window is marked off-screen")
+    check(targets.first { $0.id == 3 }?.listNote.contains("not on this desktop") == true, "it carries the list note")
+    check(targets.first { $0.id == 1 }?.listNote == "", "visible windows have no note")
 }))
 
 cases.append(("stop reasons: failures are never hidden by a normal stop", {

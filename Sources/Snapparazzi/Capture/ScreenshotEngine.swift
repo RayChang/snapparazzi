@@ -307,7 +307,7 @@ func runCapture(options: CLIOptions, windows: [WindowTarget]) -> Int32 {
         } else {
             stats.unavailable += 1
             if !wasUnavailable {
-                print("視窗目前不可用；同一視窗恢復後會繼續 / Window unavailable; waiting for the same window to return.")
+                print("視窗目前看不到（已最小化，或在其他桌面／全螢幕）；回到畫面上後會繼續截圖 / Window not visible (minimized, or on another Space / full screen); capture resumes when it is back on screen.")
                 wasUnavailable = true
             }
         }

@@ -6,6 +6,12 @@ struct WindowTarget {
     let ownerPID: pid_t
     let ownerName: String
     let title: String
+    // false for windows on another Space, in full screen elsewhere, or minimized.
+    var isOnScreen = true
+
+    var listNote: String {
+        isOnScreen ? "" : "  [不在目前桌面 / not on this desktop]"
+    }
 
     var displayTitle: String {
         let normalized = title
@@ -36,13 +42,20 @@ private func doubleValue(_ value: Any?) -> Double? {
     return value as? Double
 }
 
+// Every window on any Space (including full-screen windows), not just the current one.
 func discoverWindows() -> [WindowTarget] {
-    let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+    let options: CGWindowListOption = [.optionAll, .excludeDesktopElements]
     guard let rawWindows = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
         return []
     }
+    return windowTargets(from: rawWindows)
+}
 
-    return rawWindows.compactMap { info in
+// Keeps normal app windows. Off-screen windows (other Spaces, full screen elsewhere,
+// minimized) are kept only if they have a title: the untitled ones are toolbars,
+// menus and other helper windows. On-screen windows are listed first.
+func windowTargets(from rawWindows: [[String: Any]]) -> [WindowTarget] {
+    rawWindows.compactMap { info in
         guard intValue(info[kCGWindowLayer as String]) == 0,
               (doubleValue(info[kCGWindowAlpha as String]) ?? 1) > 0,
               let sharingState = intValue(info[kCGWindowSharingState as String]),
@@ -58,15 +71,22 @@ func discoverWindows() -> [WindowTarget] {
               bounds.height > 1 else {
             return nil
         }
+        let title = (info[kCGWindowName as String] as? String) ?? ""
+        let onScreen = (info[kCGWindowIsOnscreen as String] as? Bool) ?? false
+        guard onScreen || !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
 
         return WindowTarget(
             id: CGWindowID(windowNumber),
             ownerPID: pid_t(ownerPIDValue),
             ownerName: ownerName,
-            title: (info[kCGWindowName as String] as? String) ?? ""
+            title: title,
+            isOnScreen: onScreen
         )
     }
     .sorted {
+        if $0.isOnScreen != $1.isOnScreen { return $0.isOnScreen }
         let ownerComparison = $0.ownerName.localizedStandardCompare($1.ownerName)
         if ownerComparison != .orderedSame { return ownerComparison == .orderedAscending }
         let titleComparison = $0.displayTitle.localizedStandardCompare($1.displayTitle)
@@ -78,20 +98,22 @@ func discoverWindows() -> [WindowTarget] {
 func printWindowList(_ windows: [WindowTarget]) {
     print("WINDOW_ID\tAPP — WINDOW / 應用程式 — 視窗")
     for window in windows {
-        print("\(window.id)\t\(window.ownerName) — \(window.displayTitle)")
+        print("\(window.id)\t\(window.ownerName) — \(window.displayTitle)\(window.listNote)")
     }
 }
 
+// Screenshots need the window on screen now: screencapture cannot capture a window on
+// another Space, so capture pauses until the user brings it back.
 func selectedWindowIsAvailable(_ target: WindowTarget) -> Bool {
     discoverWindows().contains {
-        $0.id == target.id && $0.ownerPID == target.ownerPID
+        $0.id == target.id && $0.ownerPID == target.ownerPID && $0.isOnScreen
     }
 }
 
 func promptForWindow(from windows: [WindowTarget]) -> WindowTarget? {
     print("\n目前可截取的視窗 / Capturable windows:")
     for (index, window) in windows.enumerated() {
-        print("  [\(index + 1)] \(window.ownerName) — \(window.displayTitle) (ID: \(window.id))")
+        print("  [\(index + 1)] \(window.ownerName) — \(window.displayTitle) (ID: \(window.id))\(window.listNote)")
     }
 
     while true {

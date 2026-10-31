@@ -63,6 +63,13 @@ assert_contains "help documents listing" "$last_output" "--list"
 assert_contains "help documents permissions bilingually" "$last_output" "螢幕錄製 / Screen Recording"
 assert_contains "help documents exit statuses" "$last_output" "結束碼 / EXIT STATUS"
 assert_contains "help documents concurrent instances" "$last_output" "multiple Terminal"
+assert_contains "help explains how to find a window ID first" "$last_output" "STEP 1: FIND THE WINDOW ID"
+assert_contains "help explains the usage notation" "$last_output" "Notation:"
+assert_contains "help gives the window default" "$last_output" "Default: you pick one from a numbered list."
+assert_contains "help gives the interval default" "$last_output" "just pressing Enter uses 2 seconds"
+assert_contains "help gives the output default" "$last_output" "Default: ~/Snapparazzi/captures"
+assert_contains "help gives the size default" "$last_output" "Default: original size."
+assert_contains "help points to recording" "$last_output" "snapparazzi record --window <id> [options]"
 
 run_cli -h
 assert_equal "short help exits successfully" "0" "$last_status"

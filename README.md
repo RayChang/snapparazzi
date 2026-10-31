@@ -1,8 +1,8 @@
 # Snapparazzi 📸
 
-Snapparazzi is a native macOS CLI for one specific app window: it either takes a screenshot of it at a fixed interval, or records it to MP4 with the app's audio and/or the microphone. Pick a visible window interactively or pass its window ID, and press `Ctrl-C` when you are done.
+Snapparazzi is a native macOS CLI for one specific app window: it either takes a screenshot of it at a fixed interval, or records it to MP4 with the app's audio and/or the microphone. Pick a window interactively or pass its window ID, and press `Ctrl-C` when you are done.
 
-Snapparazzi 是一個原生 macOS CLI，專門處理一個指定的 App 視窗：可以定時截圖，也可以錄成 MP4，並可錄入 App 聲音與麥克風。你可以從互動清單選擇可見視窗，或直接傳入 window ID；按下 `Ctrl-C` 即可停止。
+Snapparazzi 是一個原生 macOS CLI，專門處理一個指定的 App 視窗：可以定時截圖，也可以錄成 MP4，並可錄入 App 聲音與麥克風。你可以從互動清單選擇視窗，或直接傳入 window ID；按下 `Ctrl-C` 即可停止。
 
 | | 截圖 / Screenshots | 錄影 / Recording |
 |---|---|---|
@@ -43,7 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.s
 ## 快速開始 / Quick start
 
 ```sh
-snapparazzi --list                  # 列出可見 window ID / list visible window IDs
+snapparazzi --list                  # 列出視窗與 ID（含其他桌面、全螢幕）/ list window IDs, incl. other Spaces
 
 # 截圖 / Screenshots
 snapparazzi                         # 互動選擇視窗與間隔 / interactive mode
@@ -169,9 +169,9 @@ Recording: one MP4 at the path below by default; `-o` chooses another `.mp4` pat
 ~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-PID.mp4
 ```
 
-截圖時若視窗最小化、切換到其他 Space 或關閉，該程序會暫停產圖；同一 window ID 恢復時會繼續。App 重建視窗後通常會取得新的 ID，這時請重新啟動 Snapparazzi 並選擇新視窗。
+`--list` 也會列出在其他桌面或全螢幕的視窗，並標上「不在目前桌面」。錄影可以直接錄這些視窗；截圖則要等視窗出現在畫面上才會開始，因為 macOS 只能截取目前桌面上的視窗。截圖時若視窗最小化、切換到其他 Space 或關閉，該程序會暫停產圖；同一 window ID 恢復時會繼續。App 重建視窗後通常會取得新的 ID，這時請重新啟動 Snapparazzi 並選擇新視窗。
 
-While taking screenshots, a minimized, hidden or closed window pauses capture until the same window ID is visible again. A recreated window usually receives a new ID; restart Snapparazzi and select it again.
+`--list` also shows windows on other desktops or in full screen, marked "not on this desktop". Recording works on them directly; screenshots wait until the window is on screen, because macOS can only screenshot a window on the current desktop. While taking screenshots, a minimized, hidden or closed window pauses capture until the same window ID is visible again. A recreated window usually receives a new ID; restart Snapparazzi and select it again.
 
 ## 開發 / Development
 
