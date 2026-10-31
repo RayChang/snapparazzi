@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T00:00:00Z",
+  "title": "Design System: Snapparazzi",
+  "extensions": {
+    "colorMeta": {
+      "phosphor-amber": {
+        "role": "primary",
+        "displayName": "Phosphor Amber",
+        "canonical": "#ffb341",
+        "cssVar": "--ink",
+        "tonalRamp": [
+          "#2a1a05",
+          "#4a3009",
+          "#6b4710",
+          "#8f5f17",
+          "#b5791f",
+          "#dc9429",
+          "#ffb341",
+          "#ffd9a0"
+        ]
+      },
+      "phosphor-amber-hot": {
+        "role": "primary",
+        "displayName": "Hot Phosphor",
+        "canonical": "#ffc66e",
+        "note": "Copy-button hover only; literal in styles.css, no custom property.",
+        "tonalRamp": [
+          "#2a1a05",
+          "#4a3009",
+          "#6b4710",
+          "#8f5f17",
+          "#b5791f",
+          "#dc9429",
+          "#ffb341",
+          "#ffd9a0"
+        ]
+      },
+      "amber-dim": {
+        "role": "neutral",
+        "displayName": "Dim Amber",
+        "canonical": "#d39a45",
+        "cssVar": "--ink-2",
+        "tonalRamp": [
+          "#2a1a05",
+          "#4a3009",
+          "#6b4710",
+          "#8f5f17",
+          "#b5791f",
+          "#dc9429",
+          "#ffb341",
+          "#ffd9a0"
+        ]
+      },
+      "amber-trace": {
+        "role": "neutral",
+        "displayName": "Amber Trace",
+        "canonical": "#6b4f26",
+        "cssVar": "--ink-3",
+        "note": "Rules, brackets, underlines only; never text.",
+        "tonalRamp": [
+          "#2a1a05",
+          "#4a3009",
+          "#6b4710",
+          "#8f5f17",
+          "#b5791f",
+          "#dc9429",
+          "#ffb341",
+          "#ffd9a0"
+        ]
+      },
+      "cathode-black": {
+        "role": "neutral",
+        "displayName": "Cathode Black",
+        "canonical": "#0c0a07",
+        "cssVar": "--bg",
+        "tonalRamp": [
+          "#0c0a07",
+          "#1a160f",
+          "#2a241a",
+          "#3d3527",
+          "#5a5040",
+          "#7d7260",
+          "#a89c88",
+          "#d8cfc0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "glyph-display": {
+        "displayName": "Glyph Display",
+        "purpose": "Hero and closing headlines rendered from canvas into a pre: '@' (>=0.7), '%' (edge), space below cutoff 0.25 CJK / 0.35 Latin. 5px under 600px."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles with a Dim Amber '> ' prompt; max 28ch."
+      },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "The two capture tracks under Usage (screenshots, then recording), 700 at 18px, prefixed with a Dim Amber '# '."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "Hero copy, max 46ch."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text; page set at font-stretch 87.5%. 14px under 600px."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Command rows and terminal blocks; inline code in prose is 700 Phosphor Amber."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Top bar (uppercase), install label, notes, status."
+      },
+      "scene": {
+        "displayName": "Scene",
+        "purpose": "ASCII desktop scene and typed rules; scene 9px under 600px."
+      }
+    },
+    "glyphRamp": " .:-=+*#%@",
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "State transitions on copy button and language toggle (200–250ms)."
+      },
+      {
+        "name": "glyph-scramble",
+        "value": "900ms, progress 1 - 2^(-10p)",
+        "purpose": "Left-to-right scramble-resolve of glyph headlines when they enter view."
+      },
+      {
+        "name": "rec-blink",
+        "value": "1Hz on/off",
+        "purpose": "REC tag in the scene."
+      },
+      {
+        "name": "caret-blink",
+        "value": "1.1s steps(1) infinite",
+        "purpose": "Block caret after the live command."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "Resolved static frames; no blink, no transitions, scene painted on demand."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "960px"
+      },
+      {
+        "name": "compact",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Copy Button",
+      "kind": "button",
+      "refersTo": "button-copy",
+      "description": "Primary action: inverse cell beside the install command.",
+      "html": "<button class=\"ds-btn\">[ COPY ]</button> <button class=\"ds-btn\" data-state=\"done\">[ COPIED ]</button>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-btn{font:700 13px/1 var(--mono);letter-spacing:.06em;color:var(--bg);background:var(--ink);border:0;border-radius:0;padding:12px 2ch;cursor:pointer;transition:background-color .2s cubic-bezier(.16,1,.3,1);}.ds-btn:hover{background:#ffc66e;}.ds-btn:active{background:var(--ink-2);}.ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}.ds-btn[data-state=done]{background:var(--bg);color:var(--ink);}"
+    },
+    {
+      "name": "Language Toggle",
+      "kind": "chip",
+      "refersTo": "toggle-lang",
+      "description": "[中|EN] toggle; pressed language is an inverse cell.",
+      "html": "<div class=\"ds-lang\"><span>[</span><button aria-pressed=\"true\">中</button><span>|</span><button aria-pressed=\"false\">EN</button><span>]</span></div>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-lang{display:inline-flex;align-items:center;color:var(--ink-2);background:var(--bg);padding:8px;font:400 13px/1.7 var(--mono);letter-spacing:.08em;}.ds-lang button{font:inherit;letter-spacing:inherit;color:var(--ink);background:transparent;border:0;padding:2px 1ch;cursor:pointer;transition:background-color .25s cubic-bezier(.16,1,.3,1),color .25s cubic-bezier(.16,1,.3,1);}.ds-lang button[aria-pressed=true]{background:var(--ink);color:var(--bg);}.ds-lang button:not([aria-pressed=true]):hover{background:color-mix(in srgb,var(--ink) 14%,transparent);}.ds-lang button:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Bracketed uppercase links; current section is an inverse cell.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" aria-current=\"true\">USAGE</a><a href=\"#\">FEATURES</a><a href=\"#\">LIMITS</a><a href=\"#\">GITHUB</a></nav>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-nav{display:flex;gap:3ch;background:var(--bg);padding:12px;font:400 13px/1.7 var(--mono);letter-spacing:.08em;text-transform:uppercase;}.ds-nav a{color:var(--ink);text-decoration:none;}.ds-nav a::before{content:'[';color:var(--ink-3);margin-right:.5ch;}.ds-nav a::after{content:']';color:var(--ink-3);margin-left:.5ch;}.ds-nav a:hover::before,.ds-nav a:hover::after{color:var(--ink);}.ds-nav a[aria-current=true]{background:var(--ink);color:var(--bg);}.ds-nav a[aria-current=true]::before,.ds-nav a[aria-current=true]::after{color:var(--bg);}.ds-nav a:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Typed Frame + Command Row",
+      "kind": "card",
+      "refersTo": "command-row",
+      "description": "Container drawn as '+-- label ---+' rows; install command with copy button.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-trule ds-head\"><span>+-- install.sh </span><i></i><span>+</span></div><div class=\"ds-row\"><code class=\"ds-cmd\">curl -fsSL https://…/install.sh | sh</code><button class=\"ds-btn\">[ COPY ]</button></div><div class=\"ds-trule\"><span>+</span><i></i><span>+</span></div></div>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-panel{background:var(--bg);color:var(--ink);padding:12px;font-family:var(--mono);}.ds-trule{display:flex;white-space:nowrap;overflow:hidden;color:var(--ink-3);font-size:13px;line-height:1.4;}.ds-head span:first-child{color:var(--ink-2);}.ds-trule i{flex:1;min-width:0;overflow:hidden;font-style:normal;}.ds-trule i::before{content:'------------------------------------------------------------------------------------------------------------------------';}.ds-trule span{flex:none;}.ds-row{display:flex;align-items:stretch;margin:4px 0;}.ds-cmd{flex:1;padding:12px 1.5ch;font-size:13px;line-height:1.6;}.ds-cmd::before{content:'$ ';color:var(--ink-2);}.ds-btn{font:700 13px/1 var(--mono);letter-spacing:.06em;color:var(--bg);background:var(--ink);border:0;padding:0 2ch;cursor:pointer;}.ds-btn:hover{background:#ffc66e;}.ds-btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px;}"
+    },
+    {
+      "name": "Terminal Block",
+      "kind": "custom",
+      "refersTo": "terminal-block",
+      "description": "Shell-tab frame around real CLI output; prompt and output dim.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-trule ds-head\"><span>+-- zsh  1/3 </span><i></i><span>+</span></div><pre class=\"ds-term\"><span class=\"ds-dim\">$</span> snapparazzi --list\n<span class=\"ds-dim\">WINDOW_ID  APP — WINDOW\n41324      Google Chrome — Webinar</span></pre><div class=\"ds-trule\"><span>+</span><i></i><span>+</span></div></div>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-panel{background:var(--bg);color:var(--ink);padding:12px;font-family:var(--mono);}.ds-trule{display:flex;white-space:nowrap;overflow:hidden;color:var(--ink-3);font-size:13px;line-height:1.4;}.ds-head span:first-child{color:var(--ink-2);}.ds-trule i{flex:1;min-width:0;overflow:hidden;font-style:normal;}.ds-trule i::before{content:'------------------------------------------------------------------------------------------------------------------------';}.ds-trule span{flex:none;}.ds-term{margin:0;padding:12px 2ch;font:400 13px/1.6 var(--mono);white-space:pre;overflow-x:auto;}.ds-dim{color:var(--ink-2);}"
+    },
+    {
+      "name": "Section Headline",
+      "kind": "custom",
+      "refersTo": "headline",
+      "description": "Section title behind a '> ' prompt, over a typed dash rule.",
+      "html": "<div class=\"ds-sec\"><h2 class=\"ds-h2\">Three commands, one window</h2></div>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-sec{position:relative;background:var(--bg);padding:24px 16px 8px;font-family:var(--mono);}.ds-sec::before{content:'- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -';position:absolute;left:16px;right:16px;top:6px;font-size:12px;line-height:1;color:var(--ink-3);white-space:nowrap;overflow:hidden;}.ds-h2{margin:0;color:var(--ink);font-size:clamp(22px,2.4vw,32px);line-height:1.25;font-weight:700;letter-spacing:-.01em;}.ds-h2::before{content:'> ';color:var(--ink-2);}"
+    },
+    {
+      "name": "Spec List",
+      "kind": "custom",
+      "refersTo": "terminal-block",
+      "description": "Caveat rows hung on a bold '!', separated by ': : :' rules.",
+      "html": "<ul class=\"ds-list\"><li>system audio is the whole app.</li><li>DRM-protected content may not be captured.</li></ul>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-list{list-style:none;margin:0;padding:0;background:var(--bg);font:400 15px/1.7 var(--mono);color:var(--ink-2);}.ds-list li{position:relative;padding:16px 2ch 16px 5ch;}.ds-list li::after{content:'!';position:absolute;left:2ch;top:16px;font-weight:700;color:var(--ink);}.ds-list li+li::before{content:': : : : : : : : : : : : : : : : : : : : : : : : : : : : : :';position:absolute;left:2ch;right:2ch;top:-.7em;white-space:nowrap;overflow:hidden;color:var(--ink-3);font-size:12px;line-height:1;}"
+    },
+    {
+      "name": "Glyph Headline",
+      "kind": "custom",
+      "refersTo": "glyph-display",
+      "description": "Headline rendered as density: '@' interior, '%' edge, space outside.",
+      "html": "<pre class=\"ds-glyph\" aria-hidden=\"true\">  @@@@%   @@%   @@@@@%  \n @@% @@% @@@@% @@%      \n @@%     @% @% @@@@@%   \n @@% @@% @@@@@%    @@%  \n  @@@@%  @% @% @@@@@%   </pre>",
+      "css": ":host{--bg:#0c0a07;--ink:#ffb341;--ink-2:#d39a45;--ink-3:#6b4f26;--mono:\"Martian Mono\",ui-monospace,Menlo,monospace;}.ds-glyph{margin:0;padding:16px;background:var(--bg);color:var(--ink);font:400 12px/1 var(--mono);letter-spacing:0;white-space:pre;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Phosphor Desktop",
+    "overview": "Every surface is a screen drawn in typewriter characters: one amber phosphor ink on a near-black cathode, one strict monospace grid, and nothing that is not a character. Tone is not a colour choice; it is glyph density, running from the period to the at-sign, and the densest glyph is the highlight. The recorded window is the densest mass on the page; everything not being recorded is pushed to the sparse end of the ramp.\n\nStructure is typed, never drawn. Boxes are rows of `+-- label ---+`, rules are rows of `- - -` or `: : :`, and links sit in brackets. Active things are inverse cells, a solid amber block with black characters, the way a terminal shows a selection. There are no images, no gradients, no shadows, no rounded corners and no second hue.\n\nThe page is dense and quiet at once: small type (13–15px), generous section steps, and a single live scene that moves. Motion is the grid resolving itself: glyphs scramble and settle left to right, the REC mark and caret blink, and reduced motion shows the settled frame.",
+    "keyCharacteristics": [
+      "One hue (amber) in three strengths on one ground; tone comes from glyph density.",
+      "Martian Mono for everything on the grid; CJK falls back to the system Traditional Chinese face.",
+      "Display headlines are rendered as glyph density, not set in a display face.",
+      "Frames and rules are typed ASCII characters, not CSS borders.",
+      "Active state is always an inverse cell."
+    ],
+    "rules": [
+      {
+        "name": "The One Hue Rule",
+        "body": "Every colour is amber or the black ground. A second hue, a gradient or a tint of anything else breaks the world.",
+        "section": "colors"
+      },
+      {
+        "name": "The Trace Is Not Text Rule",
+        "body": "Amber Trace carries rules, brackets and underlines only; anything a visitor must read is Phosphor Amber or Dim Amber.",
+        "section": "colors"
+      },
+      {
+        "name": "The Glyph Headline Rule",
+        "body": "Large type is never set in a large font; it is rendered through the density ramp into a `pre` with the source heading kept for assistive tech.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Grid Rule",
+        "body": "Every visible character belongs to the Martian Mono grid; widths and indents are measured in `ch` wherever the grid shows.",
+        "section": "typography"
+      },
+      {
+        "name": "The Density Is Depth Rule",
+        "body": "To bring something forward, make it denser or invert it; never shadow, blur or tint it.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** draw boxes and rules as typed characters (`+`, `-`, `|`, `:`, brackets) on the grid, in Amber Trace.",
+      "**Do** show every active or selected state as an inverse cell: Phosphor Amber fill, Cathode Black text.",
+      "**Do** render large headlines through the glyph-density fill (`@`, `%`, space) and keep the real heading as the accessible source.",
+      "**Do** measure grid-aligned padding and indents in `ch`.",
+      "**Do** give every animation a resolved static state for reduced motion."
+    ],
+    "donts": [
+      "**Don't** introduce a second hue, a gradient, an image or a photograph; tone comes only from glyph density.",
+      "**Don't** use CSS borders, border-radius or box-shadow to build containers or depth.",
+      "**Don't** set Amber Trace (`--ink-3`) on readable text.",
+      "**Don't** set a headline in a large display font in place of the glyph render.",
+      "**Don't** let any non-recorded element out-dense the recorded window in the scene."
+    ]
+  }
+}
