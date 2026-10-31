@@ -34,45 +34,34 @@ jobs:
       - name: Build and test
         run: make test
 
-  # The oldest supported system for screenshots: build there (deployment target =
-  # macOS 14, like the one-line installer on such a Mac) with a macOS 15+ SDK, run the
-  # screenshot and record-argument suites, and check that `record` itself refuses
-  # with "requires macOS 15" instead of crashing.
-  macos14:
-    runs-on: macos-14
+
+  # macOS 14 runner images are retired on 2026-11-02 (the job was verified on macOS
+  # 14.8.9 on 2026-10-30, see docs). Users on macOS 14 build with Xcode 16, whose
+  # compiler once rejected code Swift 6.3 accepted, so build and test with the
+  # newest Xcode 16 here, and also compile for a macOS 14 deployment target so every
+  # macOS 15 API stays behind #available.
+  xcode16:
+    runs-on: macos-15
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Select an Xcode with a macOS 15+ SDK
+      - name: Select the newest Xcode 16
         run: |
-          xcode="$(ls -d /Applications/Xcode_1[6-9]*.app /Applications/Xcode_2*.app 2>/dev/null | sort -V | tail -1)"
-          [ -n "$xcode" ] || { echo "no Xcode 16 or newer on this runner"; ls -d /Applications/Xcode*.app; exit 1; }
+          xcode="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)"
+          [ -n "$xcode" ] || { echo "no Xcode 16 on this runner"; ls -d /Applications/Xcode*.app; exit 1; }
           sudo xcode-select -s "$xcode"
           sw_vers
           xcrun --show-sdk-version
           xcrun swiftc --version
 
-      - name: Build for this macOS version
-        run: |
-          sw_vers -productVersion | grep -q '^14\.' || { echo "expected macOS 14"; exit 1; }
-          make build
-          otool -l .build/snapparazzi | grep -A4 LC_BUILD_VERSION | grep -E 'minos|sdk'
-          .build/snapparazzi --version
+      - name: Build and test with Xcode 16
+        run: make test
 
-      - name: Screenshot and record-argument suites
+      - name: Compile for a macOS 14 deployment target
         run: |
-          tests/run-tests.sh
-          tests/record-cli-tests.sh
-
-      - name: record refuses on macOS 14
-        run: |
-          set +e
-          .build/snapparazzi record -w 1 --duration 1 -o "$RUNNER_TEMP/clip.mp4" > "$RUNNER_TEMP/record.out" 2>&1
-          code=$?
-          set -e
-          cat "$RUNNER_TEMP/record.out"
-          [ "$code" -eq 1 ] || { echo "expected exit 1, got $code"; exit 1; }
-          grep -q 'record requires macOS 15 or later' "$RUNNER_TEMP/record.out"
-          [ ! -e "$RUNNER_TEMP/clip.mp4" ]
-          echo "record on $(sw_vers -productVersion): exit 1 with the macOS 15 message, no file"
+          xcrun swiftc -emit-executable -O -whole-module-optimization -warnings-as-errors \
+            -target "$(uname -m)-apple-macosx14.0" \
+            $(find Sources/Snapparazzi -name '*.swift' | LC_ALL=C sort) .build/Generated/BuildMetadata.swift \
+            -o "$RUNNER_TEMP/snapparazzi-macos14"
+          otool -l "$RUNNER_TEMP/snapparazzi-macos14" | grep -A4 LC_BUILD_VERSION | grep -E 'minos|sdk'
