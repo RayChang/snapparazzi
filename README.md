@@ -34,7 +34,7 @@ Run the same command again to update. The installer downloads the full source ar
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
-  | SNAPPARAZZI_REF=v1.2.0 sh
+  | SNAPPARAZZI_REF=v1.3.0 sh
 
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
   | SNAPPARAZZI_BIN="$HOME/bin" sh

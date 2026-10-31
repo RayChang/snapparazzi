@@ -108,7 +108,7 @@ assert_equal \
   "$([[ -x "${install_dir}/snapparazzi" ]] && print executable || print missing)"
 assert_equal \
   "installed executable reports its version" \
-  "snapparazzi 1.2.0" \
+  "snapparazzi 1.3.0" \
   "$("${install_dir}/snapparazzi" --version)"
 assert_contains \
   "installed executable includes full help" \
@@ -149,7 +149,7 @@ assert_equal \
   "$(cat "$curl_log")"
 assert_equal \
   "install locations with spaces work" \
-  "snapparazzi 1.2.0" \
+  "snapparazzi 1.3.0" \
   "$("${spaced_dir}/snapparazzi" --version 2>&1)"
 
 # 3. Unsafe refs are rejected before any download.
