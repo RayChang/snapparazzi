@@ -103,7 +103,8 @@ struct RecordCommand {
         }
         let content: SCShareableContent
         do {
-            content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            // Include windows on other Spaces and in full screen: ScreenCaptureKit records them.
+            content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         } catch {
             return self.error("無法取得可錄製內容 / Cannot list shareable content: \(error.localizedDescription)")
         }
@@ -308,7 +309,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         do { try pipeline.tick(hostNow: now) } catch { return stopOnQueue(.failure(error.localizedDescription)) }
         guard pipeline.sessionSeconds(now) != nil else {
             if uptime() - startUptime > RecordingEngine.firstFrameTimeout {
-                stopOnQueue(.failure("5 秒內沒有收到畫面 / No video frame within 5 seconds"))
+                stopOnQueue(.failure("5 秒內沒有收到畫面（視窗可能已最小化，請先還原）/ No video frame within 5 seconds (the window may be minimized; restore it first)"))
             }
             return
         }

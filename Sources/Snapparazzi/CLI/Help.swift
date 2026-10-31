@@ -31,11 +31,15 @@ Snapparazzi — take timed screenshots of one macOS window, or record it to vide
     WINDOW_ID  APP — WINDOW / 應用程式 — 視窗
     41324      Google Chrome — YouTube
     35239      行事曆 — 行事曆
+    46504      Google Chrome — 課程影片  [不在目前桌面 / not on this desktop]
 
-  左邊的數字就是 window ID，給 --window 使用。只會列出目前看得到的視窗，
-  最小化的視窗要先還原；App 重新開啟視窗後 ID 會改變，請重新查詢。
-  The number on the left is the window ID for --window. Only visible windows are
-  listed, so restore minimized ones first. IDs change when an app reopens a window.
+  左邊的數字就是 window ID，給 --window 使用。標著「不在目前桌面」的視窗在其他
+  桌面、全螢幕，或已最小化：錄影可以直接錄（最小化的要先還原）；截圖會等到你切換到
+  那個桌面、視窗出現在畫面上才開始。App 重新開啟視窗後 ID 會改變，請重新查詢。
+  The number on the left is the window ID for --window. "not on this desktop" means
+  another Space, full screen, or minimized: record works right away (restore a
+  minimized window first); screenshots start once the window is on screen. IDs
+  change when an app reopens a window.
 
 截圖選項 / SCREENSHOT OPTIONS
   所有選項都可以省略；省略時使用下面的預設值。
@@ -162,11 +166,13 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
   Options may come in any order, each only once; -w and --window are the same.
 
 怎麼錄 / HOW TO RECORD
-  1. 找視窗 ID：snapparazzi --list，左邊的數字就是 ID（視窗要看得到，不能是最小化）。
+  1. 找視窗 ID：snapparazzi --list，左邊的數字就是 ID（在其他桌面或全螢幕也可以，
+     但不能是最小化）。
   2. 開始錄影：snapparazzi record --window <id>。第一次會要求權限（見「權限」）。
   3. 停止：按 Ctrl-C；或事先用 --duration 指定秒數，時間到自動停止。
   4. 等到出現「錄影完成 / recording saved」，影片才算存好，摘要會顯示檔案位置。
-  1. Find the window ID with snapparazzi --list (the window must be visible).
+  1. Find the window ID with snapparazzi --list (another Space or full screen is
+     fine; a minimized window is not).
   2. Start: snapparazzi record --window <id>. The first run asks for permission.
   3. Stop with Ctrl-C, or give --duration to stop automatically.
   4. Wait for "recording saved"; the summary shows where the file is.
@@ -300,8 +306,10 @@ Snapparazzi record — record one window to an MP4 video (requires macOS 15 or l
       60 fps HEVC, longest edge at most 1920 px.
 
 常見問題 / TROUBLESHOOTING
-  找不到 window ID：先用 snapparazzi --list 確認 ID，視窗要在畫面上、不能最小化。
-  Window ID not found: check it with snapparazzi --list; the window must be visible.
+  找不到 window ID：先用 snapparazzi --list 確認 ID；視窗關閉後重新開啟，ID 會改變。
+  Window ID not found: check it with snapparazzi --list; a reopened window has a new ID.
+  5 秒內沒有收到畫面：視窗可能已最小化，請先還原。
+  No video frame within 5 seconds: the window is probably minimized; restore it.
   輸出檔已存在：換一個檔名，或不加 --output 使用自動檔名。
   Output already exists: choose another name, or omit --output for an automatic one.
   需要權限或錄不到聲音：見上方「權限」與「聲音範圍」。
