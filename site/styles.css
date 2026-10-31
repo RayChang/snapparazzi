@@ -54,16 +54,16 @@ p, h1, h2, ul, ol, dl, dd, figure { margin: 0; }
 .skip:focus { top: 8px; }
 
 /* ASCII rule: a row of dashes on the character grid */
-.bar, .usage, .features, .limits, .close, .foot { position: relative; }
+.bar, .doc-sec, .close, .foot { position: relative; }
 /* Rules are typed: a line of dashes on the character grid, cut to the column. */
-.bar::after, .usage::before, .features::before, .limits::before, .close::before, .foot::before {
+.bar::after, .doc-sec::before, .close::before, .foot::before {
   content: "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -";
   position: absolute; left: var(--gutter); right: var(--gutter);
   font-size: 12px; line-height: 1; letter-spacing: 0; color: var(--ink-3);
   white-space: nowrap; overflow: hidden; pointer-events: none;
 }
 .bar::after { bottom: -6px; }
-.usage::before, .features::before, .limits::before, .close::before, .foot::before { top: -6px; }
+.doc-sec::before, .close::before, .foot::before { top: -6px; }
 
 /* Top bar */
 .bar {
@@ -155,54 +155,61 @@ html.js .glyph-source {
 @keyframes blink { 50% { opacity: 0; } }
 
 /* Sections */
-.usage, .features, .limits, .close { padding: var(--step) var(--gutter); }
+.doc-sec, .close { padding: var(--step) var(--gutter); }
 h2 {
   font-size: clamp(22px, 2.4vw, 32px); line-height: 1.25; font-weight: 700; letter-spacing: -.01em;
-  max-width: 28ch; text-wrap: balance; margin-bottom: clamp(32px, 4vw, 56px);
+  max-width: 28ch; text-wrap: balance; margin-bottom: clamp(28px, 3vw, 44px);
 }
 h2::before { content: "> "; color: var(--ink-2); }
-
-.step {
-  display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
-  gap: clamp(20px, 3vw, 48px); align-items: start;
-}
-.step-text { max-width: 46ch; }
-/* After the shared first step, the two ways to capture side by side. */
-.tracks {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(28px, 4vw, 56px); margin-top: clamp(40px, 5vw, 64px);
-}
-.track { display: grid; gap: 14px; align-content: start; min-width: 0; }
-.track .term { font-size: 12px; }
 h3 { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 700; }
 h3::before { content: "# "; color: var(--ink-2); }
+
+/* The document part reads like the README: one column, full-ink prose. */
+.doc-sec { display: grid; gap: 18px; justify-items: start; }
+.doc-sec > * { max-width: 76ch; width: 100%; }
+.doc-sec > h3 { margin-top: clamp(24px, 3vw, 40px); }
+.doc-sec p, .doc-sec li { font-size: 16px; line-height: 1.75; color: var(--ink); text-wrap: pretty; }
+.doc-sec .panel, .doc-sec .tbl { max-width: 92ch; }
+
+.start { list-style: none; padding: 0; margin: 0; display: grid; gap: clamp(28px, 3vw, 40px); counter-reset: step; }
+.start > li { counter-increment: step; display: grid; gap: 12px; padding-left: 5ch; position: relative; }
+.start > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0;
+  width: 3ch; text-align: center; background: var(--ink); color: var(--bg); font-weight: 700; line-height: 1.3; font-size: 18px;
+}
+.start > li > h3::before { content: none; }
+
+.facts { list-style: none; padding: 0; margin: 0; display: grid; }
+.facts li { padding: 12px 0 12px 3ch; position: relative; }
+.facts li::before { content: "-"; position: absolute; left: 0; color: var(--ink-2); }
+.facts li + li::after {
+  content: ": : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : "; position: absolute; left: 0; right: 0; top: -.6em;
+  white-space: nowrap; overflow: hidden; color: var(--ink-3); font-size: 12px; line-height: 1;
+}
+
+/* Option and measurement tables: typed rules, scroll sideways on narrow screens. */
+.tbl { overflow-x: auto; scrollbar-width: thin; }
+.tbl table { border-collapse: collapse; width: 100%; font-size: 15px; line-height: 1.6; }
+.tbl th { text-align: left; font-weight: 400; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); padding: 8px 2ch 10px 0; }
+.tbl td { padding: 10px 2ch 10px 0; vertical-align: top; color: var(--ink); position: relative; }
+.tbl td:first-child { white-space: nowrap; }
+/* each cell types its own stretch of the row rule, so the row reads as one line */
+.tbl tbody td::before {
+  content: ": : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : "; position: absolute; left: 0; right: 0; top: -.55em;
+  white-space: nowrap; overflow: hidden; color: var(--ink-3); font-size: 12px; line-height: 1; font-weight: 400;
+}
+.tbl table.num { width: auto; min-width: min(100%, 64ch); }
+.tbl table.num td:not(:first-child), .tbl table.num th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; padding-left: 4ch; }
+.tbl table code { font-weight: 700; color: var(--ink); }
+
 .term {
   margin: 0; padding: 12px 2ch; font-size: 13px; line-height: 1.6;
   overflow-x: auto; white-space: pre; scrollbar-width: thin;
 }
 .term .out { color: var(--ink-2); }
-.usage > .note { margin-top: clamp(36px, 4vw, 56px); }
 
 code { font-size: .93em; }
-p code, dd code, li code { color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
-.step-text, .spec dd, .spec-list li, .usage > .note { color: var(--ink-2); }
-
-.spec { display: grid; }
-.spec > div {
-  display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: clamp(20px, 3vw, 48px);
-  padding: 16px 2ch; position: relative;
-}
-.spec > div + div::before, .spec-list li + li::before {
-  content: ": : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : : "; position: absolute; left: 2ch; right: 2ch; top: -.7em;
-  white-space: nowrap; overflow: hidden; color: var(--ink-3); font-size: 12px; line-height: 1;
-}
-.spec dt { font-weight: 700; }
-.spec dd { max-width: 70ch; }
-
-.panel.narrow { max-width: 76ch; }
-.spec-list { list-style: none; padding: 0; display: grid; }
-.spec-list li { padding: 16px 2ch 16px 5ch; position: relative; }
-.spec-list li::after { content: "!"; position: absolute; left: 2ch; top: 16px; font-weight: 700; color: var(--ink); }
+p code, li code:not(.cmd) { color: var(--ink); font-weight: 700; overflow-wrap: anywhere; }
 
 .close { display: grid; justify-items: start; gap: 28px; }
 .close .glyph { width: min(100%, 720px); }
@@ -213,8 +220,6 @@ p code, dd code, li code { color: var(--ink); font-weight: 700; overflow-wrap: a
 
 @media (max-width: 960px) {
   .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 40px; }
-  .step, .spec > div, .tracks { grid-template-columns: minmax(0, 1fr); gap: 10px; }
-  .tracks { gap: 40px; }
   .scene { min-height: 0; }
 }
 
@@ -228,6 +233,17 @@ p code, dd code, li code { color: var(--ink); font-weight: 700; overflow-wrap: a
   .scene { font-size: 9px; }
   .glyph { font-size: 5px; }
   .live-cmd { white-space: normal; overflow-wrap: anywhere; }
+  .doc-sec p, .doc-sec li { font-size: 15px; }
+  /* Option tables stack: the option on one line, what it does under it. */
+  .tbl table:not(.num), .tbl table:not(.num) tbody, .tbl table:not(.num) tr, .tbl table:not(.num) td { display: block; width: 100%; }
+  .tbl table:not(.num) thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tbl table:not(.num) td { padding: 0 0 4px; white-space: normal; }
+  .tbl table:not(.num) tr { padding: 12px 0 8px; position: relative; }
+  .tbl table:not(.num) td + td::before { content: none; }
+  .tbl table:not(.num) td:first-child::before { top: -.9em; }
+  .tbl table.num { font-size: 13px; }
+  .tbl table.num td:not(:first-child), .tbl table.num th:not(:first-child) { padding-left: 2ch; }
+  .start > li { padding-left: 4ch; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -187,6 +187,13 @@ No radius anywhere; every edge is square because it is a cell edge. Containers a
 - **Style:** `[中|EN]` with Dim Amber brackets and bar; buttons are transparent amber text, 1ch padding.
 - **State:** the pressed language is an inverse cell; the other shows a 14% amber wash on hover (250ms ease-out). Choice persists in localStorage; first visit follows the browser language.
 
+### Document Sections (below the first viewport)
+- **Structure:** the README's order, one column read top to bottom: Start here (numbered steps), Timed screenshots, Recording, Permissions and more. Each fact lives in one place. Both languages are written out in full in the HTML (`data-lang-block="zh"` / `"en"`); the toggle shows one, and English section ids carry an `-en` suffix that the nav follows.
+- **Prose:** full Phosphor Amber at 16px / 1.75 (15px at 600px and below), max 76ch; panels and tables may run to 92ch. Inline code is 700 weight in the same ink.
+- **Start steps:** a numbered list; each number is a 3ch inverse cell beside an 18px subhead.
+- **Tables:** options and measurements at 15px (measurements right-aligned, tabular numerals), uppercase 13px Dim Amber headers, rows separated by typed `: : :` rules drawn per cell. At 600px and below the option tables stack (option, then its description) and the measurement table drops to 13px.
+- **Facts list:** `-` markers in Dim Amber, rows split by typed `: : :` rules.
+
 ### Scene Mode Switch
 - **Style:** the same typed control as the language toggle, `[截圖|錄影]` / `[SNAP|RECORD]`, 13px uppercase labels, set above the scene.
 - **State:** screenshots are the default and come first, as the product's primary use. In SNAP the viewfinder label reads `SNAP #0003`, the recorded window flashes inverse for 140 ms on every 2 s shot (the shutter, skipped under reduced motion), the command becomes `snapparazzi -w <id> -i 2`, and the caption shows the latest file name in the CLI's own format. In RECORD the label is the blinking `REC mm:ss` and the command is `snapparazzi record -w <id> --audio system`. Switching mode or window restarts the run and retypes the command from where it differs.

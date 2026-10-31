@@ -10,7 +10,7 @@
       pageTitle: "Snapparazzi — 定時截圖或錄影，只對準一個 macOS 視窗",
       skip: "跳到內容",
       navLabel: "頁面區段",
-      navUsage: "用法", navFeatures: "功能", navLimits: "注意事項",
+      navStart: "開始", navShots: "截圖", navRecord: "錄影", navMore: "權限與其他",
       heroTitle: "只對準​一個視窗。",
       heroLede: "原生的 macOS 指令列工具。每隔幾秒替一個 App 視窗截一張圖，把自動化流程跑過的每一步留下來，比錄影省空間得多。需要影片時，也能錄成 MP4，連同那個 App 的聲音。",
       installLabel: "在終端機貼上這一行安裝：",
@@ -21,27 +21,6 @@
       sceneLabel: "示意畫面：一個 macOS 桌面上有四個視窗，被選中的視窗正在被定時截圖或錄影。",
       modeLabel: "示意模式", modeSnap: "截圖", modeRecord: "錄影",
       sceneHint: "示意畫面，把游標移到任一個視窗上（或按方向鍵）",
-      usageTitle: "先找到視窗，再決定截圖或錄影",
-      step1: "先找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。",
-      trackSnap: "定時截圖",
-      snapText: "每 2 秒存一張 JPG，直到按 Ctrl-C。適合記錄自動化流程或長時間執行的工作，事後一張張回頭看。",
-      trackRecord: "錄成影片",
-      recordText: "需要看到動作和聲音時再錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。",
-      usageNote: "只輸入 <code>snapparazzi</code> 會列出視窗讓你挑，再問截圖間隔。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。",
-      featuresTitle: "它會做的事",
-      fRecord: "錄成 MP4", fRecordD: "H.264 或 HEVC，1–60 fps。用 <code>--duration</code> 指定秒數，時間到自動停止。",
-      fAudio: "錄影的聲音", fAudioD: "<code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。",
-      fShots: "定時截圖", fShotsD: "每 0.5 秒以上一張，存成 JPG、HEIC（最省空間）或 PNG；<code>-m 1280</code> 把最長邊縮到 1280 像素，長時間拍攝也不佔空間。",
-      fSpaces: "別的桌面與全螢幕", fSpacesD: "錄影可以直接錄其他桌面或全螢幕的視窗，全螢幕的 Chrome 也會填滿畫面；截圖則會等視窗回到目前桌面才繼續。",
-      fStop: "停止", fStopD: "按 Ctrl-C 乾淨停止並顯示摘要：截圖會列出成功幾張，錄影會把 MP4 寫好；視窗關閉時錄影也會停止並保留已錄的內容。",
-      fUpdate: "更新", fUpdateD: "<code>snapparazzi update</code> 查詢並安裝最新版本，<code>--check</code> 只查詢。",
-      limitsTitle: "開始前先知道",
-      l0: "截圖只能拍目前桌面上的視窗：視窗最小化或在別的桌面時會暫停，回來後自動繼續。",
-      l1: "第一次執行時，到「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」允許你用的終端機 App；錄麥克風還要允許「麥克風」。",
-      l2: "system 聲音是整個 App 的：同一個瀏覽器的其他分頁也會被錄進去。",
-      l3: "Chrome 的視窗不在畫面上時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域會是黑的。要在背景錄，先完全結束 Chrome，再用這行開啟：<code>open -a \"Google Chrome\" --args --disable-backgrounding-occluded-windows</code>",
-      l4: "受 DRM 保護的內容可能錄不到畫面或聲音。",
-      l5: "一個程序只處理一個視窗。要同時錄好幾個，就開好幾個終端機分頁。",
       closeTitle: "拍完按 Ctrl-C。",
       tagline: "專業地打擾你的視窗。"
     },
@@ -49,7 +28,7 @@
       pageTitle: "Snapparazzi — screenshot or record one macOS window",
       skip: "Skip to content",
       navLabel: "Sections",
-      navUsage: "Usage", navFeatures: "Features", navLimits: "Limits",
+      navStart: "Start", navShots: "Screenshots", navRecord: "Recording", navMore: "More",
       heroTitle: "One window.",
       heroLede: "A native macOS command-line tool. It screenshots one app window every few seconds, so an automated run leaves a record of every step, in far less space than video. When you need video, it records the window to MP4 with that app's sound.",
       installLabel: "Paste this line into Terminal to install:",
@@ -60,27 +39,6 @@
       sceneLabel: "Illustration: a macOS desktop with four windows; the selected window is being screenshotted or recorded.",
       modeLabel: "Illustration mode", modeSnap: "SNAP", modeRecord: "RECORD",
       sceneHint: "Illustration. Point at any window (or use the arrow keys)",
-      usageTitle: "Find the window, then screenshot or record it",
-      step1: "First find the window's ID. Windows on other desktops or in full screen are listed too.",
-      trackSnap: "Timed screenshots",
-      snapText: "Saves a JPG every 2 seconds until you press Ctrl-C. Made for keeping a record of an automated run or a long job, to look back through one frame at a time.",
-      trackRecord: "Record a video",
-      recordText: "Record when you need the motion and the sound. --audio system records that app's sound, mic the microphone, both records both.",
-      usageNote: "Run just <code>snapparazzi</code> to pick a window from a list and be asked for the interval. Every option is in <code>snapparazzi --help</code> and <code>snapparazzi record --help</code>.",
-      featuresTitle: "What it does",
-      fRecord: "Record to MP4", fRecordD: "H.264 or HEVC at 1–60 fps. <code>--duration</code> stops after that many seconds.",
-      fAudio: "Sound in recordings", fAudioD: "<code>--audio none | system | mic | both</code>. system records only that app, so other apps' alerts stay out; both mixes into one track.",
-      fShots: "Timed screenshots", fShotsD: "One every 0.5 s or more, as JPG, HEIC (smallest) or PNG; <code>-m 1280</code> limits the longest edge to 1280 px, so long sessions stay small.",
-      fSpaces: "Other desktops, full screen", fSpacesD: "Recording works on windows on another desktop or in full screen, and full-screen Chrome fills the frame; screenshots wait until the window is back on the current desktop.",
-      fStop: "Stopping", fStopD: "Ctrl-C stops cleanly and prints a summary: how many screenshots were saved, or the finished MP4. A closed window also stops a recording and keeps what was recorded.",
-      fUpdate: "Updating", fUpdateD: "<code>snapparazzi update</code> checks for and installs the latest release; <code>--check</code> only checks.",
-      limitsTitle: "Before you start",
-      l0: "Screenshots only capture a window on the current desktop: while it is minimized or on another desktop, capture pauses and resumes when it is back.",
-      l1: "On first run, allow your terminal app under System Settings → Privacy & Security → Screen & System Audio Recording, and Microphone too for mic recording.",
-      l2: "system sound is the whole app: other tabs of the same browser are recorded too.",
-      l3: "Chrome stops drawing web video while its window is not visible (on another desktop), so that part records black. To record in the background, quit Chrome and reopen it with: <code>open -a \"Google Chrome\" --args --disable-backgrounding-occluded-windows</code>",
-      l4: "DRM-protected content may record without picture or sound.",
-      l5: "One process handles one window. To record several, use one Terminal tab per window.",
       closeTitle: "Ctrl-C when you're done.",
       tagline: "Professionally bothering your windows."
     }
@@ -120,6 +78,11 @@
     });
     document.querySelectorAll(".lang button").forEach((b) => {
       b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    });
+    // The document part is written out once per language; show the current one.
+    document.querySelectorAll("[data-lang-block]").forEach((el) => { el.hidden = el.dataset.langBlock !== lang; });
+    document.querySelectorAll(".bar nav a[data-target]").forEach((a) => {
+      a.setAttribute("href", "#" + a.dataset.target + (lang === "en" ? "-en" : ""));
     });
     glyphs.forEach((g) => g.render(false));
   }
@@ -639,10 +602,10 @@
 
   // Mark the section in view in the top bar.
   if ("IntersectionObserver" in window) {
-    const links = new Map([...document.querySelectorAll('.bar nav a[href^="#"]')].map((a) => [a.getAttribute("href").slice(1), a]));
+    const links = new Map([...document.querySelectorAll(".bar nav a[data-target]")].map((a) => [a.dataset.target, a]));
     const spy = new IntersectionObserver((entries) => {
       for (const e of entries) {
-        const link = links.get(e.target.id);
+        const link = links.get(e.target.id.replace(/-en$/, ""));
         if (!link) continue;
         if (e.isIntersecting) {
           links.forEach((a) => a.removeAttribute("aria-current"));
@@ -652,7 +615,7 @@
         }
       }
     }, { rootMargin: "-40% 0px -55% 0px" });
-    links.forEach((_, id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
+    document.querySelectorAll(".doc-sec").forEach((el) => spy.observe(el));
   }
 
   function boot() {
