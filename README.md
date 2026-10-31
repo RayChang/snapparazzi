@@ -182,7 +182,7 @@ make test
 make install
 ```
 
-`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, and the installer in an isolated temporary destination. CI runs it on the latest macOS and also builds on macOS 14 with Xcode 16, checking that `record` refuses there.
+`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, and the installer in an isolated temporary destination. CI runs it on the latest macOS, and again with the newest Xcode 16 on macOS 15, where it also compiles for a macOS 14 deployment target so every macOS 15 API stays behind an availability check. (Running on macOS 14 itself, where `record` refuses, was verified before GitHub retired its macOS 14 runners.)
 
 Real recordings are opt-in because they need Screen Recording/Microphone permission and a logged-in desktop:
 
