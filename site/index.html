@@ -20,9 +20,10 @@
 <header class="bar">
   <a class="brand" href="#top" aria-label="Snapparazzi">SNAPPARAZZI <span class="dim">v1.3.1</span></a>
   <nav aria-label="Sections" data-i18n-attr="aria-label:navLabel">
-    <a href="#usage" data-i18n="navUsage">用法</a>
-    <a href="#features" data-i18n="navFeatures">功能</a>
-    <a href="#limits" data-i18n="navLimits">注意事項</a>
+    <a href="#start" data-target="start" data-i18n="navStart">開始</a>
+    <a href="#screenshots" data-target="screenshots" data-i18n="navShots">截圖</a>
+    <a href="#recording" data-target="recording" data-i18n="navRecord">錄影</a>
+    <a href="#permissions" data-target="permissions" data-i18n="navMore">權限與其他</a>
     <a href="https://github.com/RayChang/snapparazzi">GitHub</a>
   </nav>
   <div class="lang" role="group" aria-label="語言 / Language">
@@ -64,26 +65,53 @@
     </figure>
   </section>
 
-  <section class="usage" id="usage" aria-labelledby="usage-title">
-    <h2 id="usage-title" data-i18n="usageTitle">先找到視窗，再決定截圖或錄影</h2>
-    <div class="step">
-      <p class="step-text" data-i18n="step1">先找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。</p>
-      <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  --list </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi --list
+  <div class="doc" lang="zh-Hant" data-lang-block="zh">
+<section class="doc-sec" id="start" aria-labelledby="start-title-zh">
+<h2 id="start-title-zh">從這裡開始</h2>
+<ol class="start">
+<li><h3>安裝</h3>
+<p>需要 macOS 14 以上（錄影需要 15），以及含 macOS 15 SDK 的 Xcode 或 Command Line Tools。還沒裝的話，先執行 <code>xcode-select --install</code>。接著在終端機貼上這一行：</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- install.sh </span><i></i><span>+</span></div><div class="cmd-row"><code class="cmd" id="install-cmd-zh">curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh</code><button type="button" class="btn copy" data-copy="install-cmd-zh" data-i18n="copy">[ 複製 ]</button></div><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>它會下載原始碼、在你的 Mac 上編譯，裝到 <code>~/.local/bin/snapparazzi</code>；編譯失敗時不會動到已安裝的版本。</p></li>
+<li><h3>允許螢幕錄製權限</h3>
+<p>第一次執行時 macOS 會要求「螢幕與系統錄音」權限。到「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」允許你用的終端機 App（例如 Terminal、iTerm2、Ghostty），然後重新執行命令。</p></li>
+<li><h3>找到視窗的 ID</h3>
+<p>左邊的數字就是 window ID。在其他桌面或全螢幕的視窗也會列出，並標上「不在目前桌面」。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi --list
 <span class="out">WINDOW_ID  APP — WINDOW / 應用程式 — 視窗
 41324      Google Chrome — Webinar
 35239      Calendar — Calendar
 46635      Terminal — zsh
 42133      Notes — Notes
-46504      Google Chrome — YouTube  [不在目前桌面 / not on this desktop]</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-    </div>
-    <div class="tracks">
-      <div class="track">
-        <h3 data-i18n="trackSnap">定時截圖</h3>
-        <p class="step-text" data-i18n="snapText">每 2 秒存一張 JPG，直到按 Ctrl-C。適合記錄自動化流程或長時間執行的工作，事後一張張回頭看。</p>
-        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  screenshots </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 2
+46504      Google Chrome — YouTube  [不在目前桌面 / not on this desktop]</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div></li>
+<li><h3>開始截圖（或錄影）</h3>
+<p>每 2 秒存一張圖： <code>snapparazzi -w 41324 -i 2</code>。要錄成影片： <code>snapparazzi record -w 41324 --audio system</code>。按 Ctrl-C 停止，會顯示摘要與檔案位置。</p></li>
+</ol>
+<h3>常用指令</h3>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- snapparazzi </span><i></i><span>+</span></div><pre class="term">snapparazzi --list                          <span class="out"># 列出視窗與 ID（含其他桌面、全螢幕）</span>
+
+<span class="out"># 截圖</span>
+snapparazzi                                 <span class="out"># 互動選擇視窗與間隔</span>
+snapparazzi -w 41324 -i 1.5                 <span class="out"># 指定視窗與間隔</span>
+snapparazzi -w 41324 -i 60 -f heic          <span class="out"># 更省空間</span>
+snapparazzi -w 41324 -i 1 -m 1280           <span class="out"># 最長邊限制為 1280 px</span>
+
+<span class="out"># 錄影（macOS 15 以上）</span>
+snapparazzi record -w 41324 --duration 10   <span class="out"># 只錄畫面 10 秒</span>
+snapparazzi record -w 41324 --audio system  <span class="out"># 加上 App 聲音，Ctrl-C 停止</span>
+snapparazzi record -w 41324 --audio both -o ~/Movies/demo.mp4  <span class="out"># App 聲音加麥克風，存到指定檔案</span>
+
+snapparazzi update                          <span class="out"># 更新到最新版</span>
+snapparazzi --help                          <span class="out"># 完整說明</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+</section>
+<section class="doc-sec" id="screenshots" aria-labelledby="shots-title-zh">
+<h2 id="shots-title-zh">定時截圖</h2>
+<p>每隔固定秒數把同一個視窗存成一張圖片，一直到你按 Ctrl-C。這是 Snapparazzi 最初的用途：記錄自動化流程跑過的每一步，事後一張張回頭看。 <code>snapparazzi</code> 與 <code>snapparazzi capture</code> 相同；只輸入 <code>snapparazzi</code> 會先列出視窗讓你選，再詢問間隔。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 2
 <span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
 間隔 / interval: 2 seconds
 格式 / format: jpg
+最大尺寸 / max dimension: original
 輸出 / output: ~/Snapparazzi/captures/20261031-101530-4821
 按 Ctrl-C 停止 / Press Ctrl-C to stop.
 ✓ Google Chrome_20261031-101530_000001.jpg
@@ -92,52 +120,183 @@
 <span class="prompt">^C</span>
 <span class="out">Snapparazzi 已停止 / stopped.
   成功 / succeeded: 3
-  失敗 / failed: 0</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-      </div>
-      <div class="track">
-        <h3 data-i18n="trackRecord">錄成影片</h3>
-        <p class="step-text" data-i18n="recordText">需要看到動作和聲音時再錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。</p>
-        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  record </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi record -w 41324 --audio system
+  失敗 / failed: 0
+  視窗不可用 / unavailable: 0
+  執行時間 / elapsed: 6.1 seconds
+  輸出目錄 / output: ~/Snapparazzi/captures/20261031-101530-4821</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<h3>選項</h3>
+<div class="tbl"><table class=""><thead><tr><th scope="col">選項</th><th scope="col">說明</th></tr></thead><tbody><tr><td><code>-l, --list</code></td><td>列出可截取視窗與 ID 後結束</td></tr><tr><td><code>-w, --window &lt;id&gt;</code></td><td>指定 window ID；省略時從清單選擇</td></tr><tr><td><code>-i, --interval &lt;seconds&gt;</code></td><td>最低 0.5 秒，可用小數；省略時詢問，直接按 Enter 是 2 秒</td></tr><tr><td><code>-o, --output &lt;directory&gt;</code></td><td>輸出根目錄，預設 ~/Snapparazzi/captures</td></tr><tr><td><code>-f, --format &lt;jpg|heic|png&gt;</code></td><td>圖片格式，預設 jpg</td></tr><tr><td><code>-m, --max-dimension &lt;pixels&gt;</code></td><td>等比例縮小到最長邊不超過這個值；預設保留原尺寸，不會放大</td></tr><tr><td><code>-h, --help</code></td><td>完整中英雙語說明</td></tr></tbody></table></div>
+<h3>檔案大小（實測）</h3>
+<p>預設直接輸出完整解析度的 JPG。要更小的檔案用 HEIC，要無損用 PNG； <code>-m</code> 會在截圖後用 macOS 內建工具等比例縮小。下表是 35 張約 2560×1410 的 Chrome 視窗樣本實測，16 小時以每秒一張（57,600 張）估算；實際大小會隨畫面內容改變。</p>
+<div class="tbl"><table class="num"><thead><tr><th scope="col">設定</th><th scope="col">平均每張</th><th scope="col">16 小時、每秒一張</th></tr></thead><tbody><tr><td>PNG（無損）</td><td>1.30 MB</td><td>74.9 GB</td></tr><tr><td>JPG（預設）</td><td>404 KB</td><td>23.3 GB</td></tr><tr><td>HEIC</td><td>213 KB</td><td>12.3 GB</td></tr><tr><td>JPG + <code>-m 1280</code></td><td>136 KB</td><td>7.9 GB</td></tr></tbody></table></div>
+<p>每分鐘一張時，三種格式的負擔都可以忽略。每秒一張時，JPG 在速度與大小之間最均衡；HEIC 編碼較慢， <code>-m</code> 會多一次縮圖。最省空間的設定：</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 1 -f jpg -m 1280</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<h3>存到哪裡</h3>
+<p>每次執行會在輸出根目錄建立一個資料夾，副檔名依 <code>--format</code>。只有成功寫入的圖片才會遞增六位數流水號。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- tree </span><i></i><span>+</span></div><pre class="term">~/Snapparazzi/captures/YYYYMMDD-HHMMSS-PID/
+└── App_Name_YYYYMMDD-HHMMSS_000001.jpg</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>截圖只能拍目前桌面上的視窗：視窗最小化、切到其他桌面或關閉時會暫停，同一個視窗回來後自動繼續。App 重新開啟視窗後 ID 會改變，請重新查詢並重新啟動。</p>
+</section>
+<section class="doc-sec" id="recording" aria-labelledby="rec-title-zh">
+<h2 id="rec-title-zh">錄成影片</h2>
+<p>把同一個視窗錄成 MP4，可加上 App 的聲音與麥克風。需要 macOS 15 以上；在 macOS 14 上 <code>record</code> 會說明原因並結束。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi record -w 41324 --audio system
 <span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
 音訊 / audio: system
+輸出 / output: ~/Snapparazzi/recordings/20261031-101530-4821.mp4
 錄影中，按 Ctrl-C 停止 / Recording… press Ctrl-C to stop.</span>
 <span class="prompt">^C</span>
 <span class="out">正在停止 / Stopping…
 
 Snapparazzi 錄影完成 / recording saved.
   檔案 / file: ~/Snapparazzi/recordings/20261031-101530-4821.mp4 (12.4 MiB)</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-      </div>
-    </div>
-    <p class="note" data-i18n-html="usageNote">只輸入 <code>snapparazzi</code> 會列出視窗讓你挑，再問截圖間隔。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。</p>
-  </section>
+<h3>選項</h3>
+<div class="tbl"><table class=""><thead><tr><th scope="col">選項</th><th scope="col">說明</th></tr></thead><tbody><tr><td><code>-w, --window &lt;id&gt;</code></td><td>必填，先用 --list 查</td></tr><tr><td><code>--audio &lt;none|system|mic|both&gt;</code></td><td>預設 none（只錄畫面）</td></tr><tr><td><code>--fps &lt;1-60&gt;</code></td><td>預設 30</td></tr><tr><td><code>--codec &lt;h264|hevc&gt;</code></td><td>預設 h264</td></tr><tr><td><code>--duration &lt;seconds&gt;</code></td><td>0.5–86400；省略時按 Ctrl-C 停止</td></tr><tr><td><code>-o, --output &lt;file.mp4&gt;</code></td><td>指定 .mp4 路徑，檔案不可已存在</td></tr><tr><td><code>-m, --max-dimension &lt;pixels&gt;</code></td><td>等比例縮小，不放大；預設為視窗原始像素</td></tr><tr><td><code>-h, --help</code></td><td>錄影專用說明</td></tr></tbody></table></div>
+<h3>聲音</h3>
+<p><code>system</code> 錄的是目標視窗所屬 App 的聲音，不是整台 Mac：其他 App 的聲音不會錄入，但同一個 App 其他視窗或分頁的聲音可能一起錄入（例如 Chrome 的其他分頁）。DRM 等受保護的內容可能錄不到。</p>
+<p><code>both</code> 會先錄成兩條音軌，停止後再混成一條（各 0.5 增益），影片不重新編碼；停止後要多花幾秒到幾十秒收尾，期間暫時需要約兩倍空間。喇叭外放的聲音會被麥克風再錄一次，建議戴耳機。</p>
+<p>麥克風使用開始錄影時的預設輸入裝置，錄影中切換系統預設不會跟著換；裝置被拔除時錄影停止並保留已錄內容。</p>
+<h3>視窗狀態</h3>
+<ul class="facts">
+<li>最小化超過 1 秒改錄黑畫面，還原後自動繼續。</li>
+<li>移到其他桌面或進入 macOS 全螢幕：照常錄製，全螢幕的 Chrome 會填滿畫面。</li>
+<li>Chrome 的視窗不在畫面上時會停止繪製網頁影片，錄到的影片區域是黑的。要在背景錄，先完全結束 Chrome（⌘Q），再用這行開啟（只對這次開啟有效）： <code>open -a &quot;Google Chrome&quot; --args --disable-backgrounding-occluded-windows</code></li>
+<li>調整視窗大小：影片尺寸不變，畫面等比例縮放並貼齊左上角。</li>
+<li>關閉視窗或結束 App：錄影停止並保留已錄內容（結束碼 1）。</li>
+</ul>
+<h3>停止與磁碟空間</h3>
+<p>Ctrl-C 或 <code>--duration</code> 會正常收尾。開始前會檢查磁碟空間（指定 --duration 時依預估大小，否則至少 1 GiB），錄影中剩餘空間低於 512 MiB 會停止並保留已錄內容。錄影中先寫進同一資料夾的隱藏暫存資料夾，檢查完才移到最終路徑，不會覆蓋既有檔案。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- tree </span><i></i><span>+</span></div><pre class="term">~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-PID.mp4</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>實測：在 Apple silicon、macOS 26.5 以 1280×864、30 fps、H.264、 <code>--audio both</code> 錄一小時（兩次），檔案約 123–130 MiB，CPU 平均約 17–18%，記憶體約 50–60 MiB 且不隨時間增加，音畫同步誤差在 40 ms 以內。</p>
+</section>
+<section class="doc-sec" id="permissions" aria-labelledby="perm-title-zh">
+<h2 id="perm-title-zh">權限與其他</h2>
+<h3>權限</h3>
+<p>截圖與錄影都需要「螢幕與系統錄音」； <code>record --audio mic</code> 或 <code>both</code> 另需「麥克風」。macOS 通常把權限記在你執行 Snapparazzi 的終端機 App 名下，而不是 snapparazzi 本身，所以換一個終端機可能要重新允許。麥克風權限被拒絕時 <code>mic</code>／<code>both</code> 會直接結束，不會改錄成無聲。</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- settings </span><i></i><span>+</span></div><pre class="term">系統設定 → 隱私權與安全性 → 螢幕與系統錄音 ／ 麥克風</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>Snapparazzi 不會上傳任何資料；圖片與影片只寫入你的 Mac。</p>
+<h3>更新</h3>
+<p><code>snapparazzi update</code> 查詢最新版本，有新版時在本機編譯並取代原本的位置； <code>--check</code> 只查詢。1.3.0 及更早的版本沒有這個命令，請重新執行上面的安裝指令。</p>
+<h3>同時處理多個視窗</h3>
+<p>一個程序只處理一個視窗。要同時截取或錄製多個視窗，請開多個終端機分頁，每個分頁跑一個 Snapparazzi，各自可以用不同間隔與輸出資料夾。</p>
+</section>
+  </div>
+  <div class="doc" lang="en" data-lang-block="en" hidden>
+<section class="doc-sec" id="start-en" aria-labelledby="start-title-en">
+<h2 id="start-title-en">Start here</h2>
+<ol class="start">
+<li><h3>Install</h3>
+<p>You need macOS 14 or later (15 for recording) and Xcode or its Command Line Tools with the macOS 15 SDK. If you do not have them yet, run <code>xcode-select --install</code>. Then paste this line into Terminal:</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- install.sh </span><i></i><span>+</span></div><div class="cmd-row"><code class="cmd" id="install-cmd-en">curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh</code><button type="button" class="btn copy" data-copy="install-cmd-en" data-i18n="copy">[ 複製 ]</button></div><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>It downloads the source, builds it on your Mac and installs it to <code>~/.local/bin/snapparazzi</code>; a failed build leaves any installed version untouched.</p></li>
+<li><h3>Allow screen recording</h3>
+<p>On first use macOS asks for Screen & System Audio Recording. Allow the terminal app you use (Terminal, iTerm2, Ghostty…) under System Settings → Privacy & Security → Screen & System Audio Recording, then run the command again.</p></li>
+<li><h3>Find the window's ID</h3>
+<p>The number on the left is the window ID. Windows on other desktops or in full screen are listed too, marked "not on this desktop".</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi --list
+<span class="out">WINDOW_ID  APP — WINDOW / 應用程式 — 視窗
+41324      Google Chrome — Webinar
+35239      Calendar — Calendar
+46635      Terminal — zsh
+42133      Notes — Notes
+46504      Google Chrome — YouTube  [不在目前桌面 / not on this desktop]</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div></li>
+<li><h3>Start capturing</h3>
+<p>A screenshot every 2 seconds: <code>snapparazzi -w 41324 -i 2</code>. To record a video instead: <code>snapparazzi record -w 41324 --audio system</code>. Press Ctrl-C to stop; a summary shows where the files are.</p></li>
+</ol>
+<h3>Quick reference</h3>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- snapparazzi </span><i></i><span>+</span></div><pre class="term">snapparazzi --list                          <span class="out"># list window IDs, incl. other desktops</span>
 
-  <section class="features" id="features" aria-labelledby="features-title">
-    <h2 id="features-title" data-i18n="featuresTitle">它會做的事</h2>
-    <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- snapparazzi --help </span><i></i><span>+</span></div>
-    <dl class="spec">
-      <div><dt data-i18n="fShots">定時截圖</dt><dd data-i18n-html="fShotsD">每 0.5 秒以上一張，存成 JPG、HEIC（最省空間）或 PNG；<code>-m 1280</code> 把最長邊縮到 1280 像素，長時間拍攝也不佔空間。</dd></div>
-      <div><dt data-i18n="fRecord">錄成 MP4</dt><dd data-i18n-html="fRecordD">H.264 或 HEVC，1–60 fps。用 <code>--duration</code> 指定秒數，時間到自動停止。</dd></div>
-      <div><dt data-i18n="fAudio">錄影的聲音</dt><dd data-i18n-html="fAudioD"><code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。</dd></div>
-      <div><dt data-i18n="fSpaces">別的桌面與全螢幕</dt><dd data-i18n="fSpacesD">錄影可以直接錄其他桌面或全螢幕的視窗，全螢幕的 Chrome 也會填滿畫面；截圖則會等視窗回到目前桌面才繼續。</dd></div>
-      <div><dt data-i18n="fStop">停止</dt><dd data-i18n="fStopD">按 Ctrl-C 乾淨停止並顯示摘要：截圖會列出成功幾張，錄影會把 MP4 寫好；視窗關閉時錄影也會停止並保留已錄的內容。</dd></div>
-      <div><dt data-i18n="fUpdate">更新</dt><dd data-i18n-html="fUpdateD"><code>snapparazzi update</code> 查詢並安裝最新版本，<code>--check</code> 只查詢。</dd></div>
-    </dl>
-    <div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-  </section>
+<span class="out"># Screenshots</span>
+snapparazzi                                 <span class="out"># interactive: pick a window and an interval</span>
+snapparazzi -w 41324 -i 1.5                 <span class="out"># window and interval</span>
+snapparazzi -w 41324 -i 60 -f heic          <span class="out"># use less storage</span>
+snapparazzi -w 41324 -i 1 -m 1280           <span class="out"># limit the longest edge</span>
 
-  <section class="limits" id="limits" aria-labelledby="limits-title">
-    <h2 id="limits-title" data-i18n="limitsTitle">開始前先知道</h2>
-    <div class="panel narrow"><div class="trule head" aria-hidden="true"><span>+-- caveats </span><i></i><span>+</span></div>
-    <ul class="spec-list">
-      <li data-i18n="l0">截圖只能拍目前桌面上的視窗：視窗最小化或在別的桌面時會暫停，回來後自動繼續。</li>
-      <li data-i18n="l1">第一次執行時，到「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」允許你用的終端機 App；錄麥克風還要允許「麥克風」。</li>
-      <li data-i18n="l2">system 聲音是整個 App 的：同一個瀏覽器的其他分頁也會被錄進去。</li>
-      <li data-i18n-html="l3">Chrome 的視窗不在畫面上時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域會是黑的。要在背景錄，先完全結束 Chrome，再用這行開啟：<code>open -a "Google Chrome" --args --disable-backgrounding-occluded-windows</code></li>
-      <li data-i18n="l4">受 DRM 保護的內容可能錄不到畫面或聲音。</li>
-      <li data-i18n="l5">一個程序只處理一個視窗。要同時錄好幾個，就開好幾個終端機分頁。</li>
-    </ul>
-    <div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-  </section>
+<span class="out"># Recording (macOS 15+)</span>
+snapparazzi record -w 41324 --duration 10   <span class="out"># 10 s, video only</span>
+snapparazzi record -w 41324 --audio system  <span class="out"># with app audio; Ctrl-C stops</span>
+snapparazzi record -w 41324 --audio both -o ~/Movies/demo.mp4  <span class="out"># app audio and mic, to a chosen file</span>
+
+snapparazzi update                          <span class="out"># update to the latest release</span>
+snapparazzi --help                          <span class="out"># full help</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+</section>
+<section class="doc-sec" id="screenshots-en" aria-labelledby="shots-title-en">
+<h2 id="shots-title-en">Timed screenshots</h2>
+<p>Saves the same window as an image every few seconds until you press Ctrl-C. This is what Snapparazzi was built for: keeping a record of every step of an automated run, to look back through one frame at a time. <code>snapparazzi</code> and <code>snapparazzi capture</code> are the same; run just <code>snapparazzi</code> to pick a window from a list and be asked for the interval.</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 2
+<span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
+間隔 / interval: 2 seconds
+格式 / format: jpg
+最大尺寸 / max dimension: original
+輸出 / output: ~/Snapparazzi/captures/20261031-101530-4821
+按 Ctrl-C 停止 / Press Ctrl-C to stop.
+✓ Google Chrome_20261031-101530_000001.jpg
+✓ Google Chrome_20261031-101530_000002.jpg
+✓ Google Chrome_20261031-101530_000003.jpg</span>
+<span class="prompt">^C</span>
+<span class="out">Snapparazzi 已停止 / stopped.
+  成功 / succeeded: 3
+  失敗 / failed: 0
+  視窗不可用 / unavailable: 0
+  執行時間 / elapsed: 6.1 seconds
+  輸出目錄 / output: ~/Snapparazzi/captures/20261031-101530-4821</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<h3>Options</h3>
+<div class="tbl"><table class=""><thead><tr><th scope="col">Option</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>-l, --list</code></td><td>List capturable windows and IDs, then exit</td></tr><tr><td><code>-w, --window &lt;id&gt;</code></td><td>Window ID; omit to pick from a list</td></tr><tr><td><code>-i, --interval &lt;seconds&gt;</code></td><td>Minimum 0.5, decimals allowed; omit to be asked (Enter means 2)</td></tr><tr><td><code>-o, --output &lt;directory&gt;</code></td><td>Output root; default ~/Snapparazzi/captures</td></tr><tr><td><code>-f, --format &lt;jpg|heic|png&gt;</code></td><td>Image format; default jpg</td></tr><tr><td><code>-m, --max-dimension &lt;pixels&gt;</code></td><td>Shrink so the longest edge fits; original size by default, never enlarged</td></tr><tr><td><code>-h, --help</code></td><td>Full bilingual help</td></tr></tbody></table></div>
+<h3>File size (measured)</h3>
+<p>By default it writes full-resolution JPG directly. Choose HEIC for smaller files or PNG for lossless output; <code>-m</code> resizes proportionally with a built-in macOS tool after capture. Measured on 35 Chrome window samples around 2560×1410; the 16-hour column assumes one per second (57,600 images). Actual sizes vary with what is on screen.</p>
+<div class="tbl"><table class="num"><thead><tr><th scope="col">Setting</th><th scope="col">Average</th><th scope="col">16 h at 1 per second</th></tr></thead><tbody><tr><td>PNG (lossless)</td><td>1.30 MB</td><td>74.9 GB</td></tr><tr><td>JPG (default)</td><td>404 KB</td><td>23.3 GB</td></tr><tr><td>HEIC</td><td>213 KB</td><td>12.3 GB</td></tr><tr><td>JPG + <code>-m 1280</code></td><td>136 KB</td><td>7.9 GB</td></tr></tbody></table></div>
+<p>At one per minute the cost of every format is negligible. At one per second JPG is the best balance of speed and size; HEIC encodes more slowly, and <code>-m</code> adds a resize pass. For storage first:</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 1 -f jpg -m 1280</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<h3>Where files go</h3>
+<p>Every run creates its own folder under the output root; the extension follows <code>--format</code>. The six-digit number advances only after an image is written.</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- tree </span><i></i><span>+</span></div><pre class="term">~/Snapparazzi/captures/YYYYMMDD-HHMMSS-PID/
+└── App_Name_YYYYMMDD-HHMMSS_000001.jpg</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>Screenshots only capture a window on the current desktop: while it is minimized, on another desktop or closed, capture pauses and resumes when the same window returns. A reopened window gets a new ID; look it up again and restart.</p>
+</section>
+<section class="doc-sec" id="recording-en" aria-labelledby="rec-title-en">
+<h2 id="rec-title-en">Recording</h2>
+<p>Records the window to an MP4, optionally with the app's sound and the microphone. Needs macOS 15 or later; on macOS 14, <code>record</code> explains this and exits.</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi record -w 41324 --audio system
+<span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
+音訊 / audio: system
+輸出 / output: ~/Snapparazzi/recordings/20261031-101530-4821.mp4
+錄影中，按 Ctrl-C 停止 / Recording… press Ctrl-C to stop.</span>
+<span class="prompt">^C</span>
+<span class="out">正在停止 / Stopping…
+
+Snapparazzi 錄影完成 / recording saved.
+  檔案 / file: ~/Snapparazzi/recordings/20261031-101530-4821.mp4 (12.4 MiB)</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<h3>Options</h3>
+<div class="tbl"><table class=""><thead><tr><th scope="col">Option</th><th scope="col">Description</th></tr></thead><tbody><tr><td><code>-w, --window &lt;id&gt;</code></td><td>Required; find it with --list</td></tr><tr><td><code>--audio &lt;none|system|mic|both&gt;</code></td><td>Default none (video only)</td></tr><tr><td><code>--fps &lt;1-60&gt;</code></td><td>Default 30</td></tr><tr><td><code>--codec &lt;h264|hevc&gt;</code></td><td>Default h264</td></tr><tr><td><code>--duration &lt;seconds&gt;</code></td><td>0.5–86400; omit to stop with Ctrl-C</td></tr><tr><td><code>-o, --output &lt;file.mp4&gt;</code></td><td>A .mp4 path that must not exist yet</td></tr><tr><td><code>-m, --max-dimension &lt;pixels&gt;</code></td><td>Fit the longest edge, never upscale; native pixels by default</td></tr><tr><td><code>-h, --help</code></td><td>Recording help</td></tr></tbody></table></div>
+<h3>Sound</h3>
+<p><code>system</code> records the target window's app, not the whole Mac: other apps are excluded, but the same app's other windows or tabs may be included (other Chrome tabs, for example). Protected (DRM) content may not be captured.</p>
+<p><code>both</code> records two tracks and mixes them into one after you stop (0.5 gain each) without re-encoding the video; finishing takes a few extra seconds to a few tens of seconds and briefly about twice the space. Sound from the speakers is picked up again by the microphone, so use headphones.</p>
+<p>The microphone is the default input when recording starts, even if the system default changes later; if it is unplugged, recording stops and keeps what it has.</p>
+<h3>Window state</h3>
+<ul class="facts">
+<li>Minimized for over a second: records black, resumes when restored.</li>
+<li>Moved to another desktop or into macOS full screen: keeps recording, and full-screen Chrome fills the frame.</li>
+<li>Chrome stops drawing web video while its window is not visible, so that area records black. To record in the background, quit Chrome (⌘Q) and reopen it with this line (for that launch only): <code>open -a &quot;Google Chrome&quot; --args --disable-backgrounding-occluded-windows</code></li>
+<li>Resized: the video size stays fixed; the picture is scaled to fit, top-left.</li>
+<li>Window closed or app quit: recording stops and keeps what it has (exit status 1).</li>
+</ul>
+<h3>Stopping and disk space</h3>
+<p>Ctrl-C or <code>--duration</code> finish normally. Free space is checked first (from the estimated size with --duration, otherwise at least 1 GiB), and recording stops below 512 MiB, keeping what it has. It writes to a hidden staging folder next to the file and moves it into place only after checking it, never overwriting.</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- tree </span><i></i><span>+</span></div><pre class="term">~/Snapparazzi/recordings/YYYYMMDD-HHMMSS-PID.mp4</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>Measured: one hour of 1280×864, 30 fps, H.264 with <code>--audio both</code> on Apple silicon and macOS 26.5 (twice): about 123–130 MiB, ~17–18% CPU, 50–60 MiB of memory that does not grow, and sound within 40 ms of the picture.</p>
+</section>
+<section class="doc-sec" id="permissions-en" aria-labelledby="perm-title-en">
+<h2 id="perm-title-en">Permissions and more</h2>
+<h3>Permissions</h3>
+<p>Screenshots and recordings need Screen & System Audio Recording; <code>record --audio mic</code> or <code>both</code> also needs Microphone. macOS usually grants these to the terminal app that launches Snapparazzi, not to snapparazzi itself, so another terminal may need its own permission. If Microphone is denied, <code>mic</code>/<code>both</code> exit instead of recording silence.</p>
+<div class="panel"><div class="trule head" aria-hidden="true"><span>+-- settings </span><i></i><span>+</span></div><pre class="term">System Settings → Privacy &amp; Security → Screen &amp; System Audio Recording / Microphone</pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+<p>Snapparazzi uploads nothing; screenshots and recordings stay on your Mac.</p>
+<h3>Updating</h3>
+<p><code>snapparazzi update</code> checks for a newer release and builds it in place; <code>--check</code> only checks. Versions 1.3.0 and earlier do not have it; run the install line again.</p>
+<h3>Several windows</h3>
+<p>One process handles one window. To capture several at once, run one Snapparazzi per Terminal tab, each with its own interval and folder.</p>
+</section>
+  </div>
 
   <section class="close" aria-labelledby="close-title">
     <h2 class="glyph-source" id="close-title" data-i18n="closeTitle" data-glyph="close" data-fit="lines">拍完按 Ctrl-C。</h2>

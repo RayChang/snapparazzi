@@ -9,6 +9,8 @@ related_targets: []
 
 Mode: Persuade. Visitor: a Mac user who wants to keep a record of an automated run in one app window (timed screenshots first; video with sound when needed); comfortable pasting a command into Terminal. Action: copy the install command, then start a first capture. Proof: the real CLI's own commands and messages, and a live demonstration of picking one window out of a desktop. Constraints: static HTML/CSS/JS in site/, deployed by GitHub Actions; zh-TW and English switched by a toggle (default follows the browser, remembered per visitor); no invented users, numbers or testimonials; illustrative windows are labeled as an illustration.
 
+Below the first viewport the page is Read, not Persuade: the owner found the README clearer than the first version of the page (too little detail, scattered, no obvious first step). It follows the README's order and facts in one column: Start here (install, permission, find the ID, start), Timed screenshots (options, measured file sizes, where files go), Recording (options, sound, window state, stopping, measured), Permissions and more. Both languages are written in full and switched by the toggle.
+
 ## Direction contract
 
 THESIS: The page is a live scene rendered in typewriter characters, and the scene is a Mac desktop: one window is picked out and recorded while every other window stays sparse. It refuses the category default of a dark hero, a terminal screenshot and a grid of feature cards.
