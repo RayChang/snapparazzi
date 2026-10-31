@@ -12,15 +12,15 @@ Static HTML/CSS (plus the small script the language toggle needs) in `site/`, pu
 
 ## Users
 
-Mac users who want to record or capture one specific app window: an online course, a meeting, a demo. They are comfortable typing a command into Terminal, but are not necessarily developers. They come to the page to find out what the tool does, whether it fits their Mac, and how to install it and make their first recording.
+The primary use is keeping a record of an automated process running in one app window (scripts, browser automation, long jobs): a screenshot every few seconds that can be reviewed one frame at a time afterwards. The owner built the tool for exactly this. Recording that to video made the files too large, so timed screenshots with a set interval became the main mode; MP4 recording with sound came later, for when the motion and sound matter (a course, a meeting, a demo). Users are Mac users comfortable typing a command into Terminal, not necessarily developers. They come to the page to find out what the tool does, whether it fits their Mac, and how to install it and start their first capture.
 
 ## Product Purpose
 
-Snapparazzi is a native macOS command-line tool for one app window. It either saves a screenshot of that window at a fixed interval (JPG, HEIC or PNG), or records it to an MP4 with the app's own audio, the microphone, or both. Pick the window from a list or pass its window ID, and press Ctrl-C to stop. Success: a visitor installs it with one command and gets a clean recording of just the window they care about.
+Snapparazzi is a native macOS command-line tool for one app window. First and foremost it saves a screenshot of that window at a fixed interval (JPG, HEIC or PNG, optionally downscaled), which keeps a long automated run small on disk. It can also record the window to an MP4 with the app's own audio, the microphone, or both. Pick the window from a list or pass its window ID, and press Ctrl-C to stop. Success: a visitor installs it with one command and leaves a run capturing just the window they care about.
 
 ## Positioning
 
-It records one window, not the whole screen, and only that app's sound, so other apps' notifications and audio stay out. It is a small native binary built on the visitor's own Mac from source, run from Terminal, and stopped with Ctrl-C. The window may be on another desktop or in full screen.
+It captures one window, not the whole screen, at an interval the user picks, so a long automated run leaves a reviewable trail of screenshots instead of a huge video; when recording, only that app's sound is kept, so other apps' notifications and audio stay out. It is a small native binary built on the visitor's own Mac from source, run from Terminal, and stopped with Ctrl-C. The window may be on another desktop or in full screen.
 
 ## Operating Context
 

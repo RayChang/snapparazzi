@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Snapparazzi — 只錄一個 macOS 視窗</title>
-<meta name="description" content="Snapparazzi 是原生 macOS 指令列工具：把一個 App 視窗定時截圖，或錄成 MP4，連同那個 App 的聲音。">
+<title>Snapparazzi — 定時截圖或錄影，只對準一個 macOS 視窗</title>
+<meta name="description" content="Snapparazzi 是原生 macOS 指令列工具：每隔幾秒替一個 App 視窗截一張圖，記錄自動化流程的每一步；需要時也能錄成 MP4，連同那個 App 的聲音。">
 <meta property="og:title" content="Snapparazzi">
-<meta property="og:description" content="Record or screenshot one macOS window, with that app's sound. A native command-line tool.">
+<meta property="og:description" content="Screenshot one macOS window every few seconds to keep a record of an automated run, or record it to MP4 with its sound. A native command-line tool.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0c0a07">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230c0a07'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='22' font-weight='700' text-anchor='middle' fill='%23ffb341'%3E@%3C/text%3E%3C/svg%3E">
@@ -33,9 +33,9 @@
 <main id="main">
   <section class="hero" id="top">
     <div class="hero-copy">
-      <h1 class="glyph-source" data-i18n="heroTitle" data-glyph="hero">只錄一個視窗。</h1>
+      <h1 class="glyph-source" data-i18n="heroTitle" data-glyph="hero">只對準​一個視窗。</h1>
       <pre class="glyph" id="glyph-hero" aria-hidden="true"></pre>
-      <p class="lede" data-i18n="heroLede">原生的 macOS 指令列工具。把一個 App 視窗定時截圖，或錄成 MP4，連同那個 App 的聲音；其他視窗和其他 App 的聲音都不會錄進去。</p>
+      <p class="lede" data-i18n="heroLede">原生的 macOS 指令列工具。每隔幾秒替一個 App 視窗截一張圖，把自動化流程跑過的每一步留下來，比錄影省空間得多。需要影片時，也能錄成 MP4，連同那個 App 的聲音。</p>
 
       <div class="install" id="install">
         <p class="install-label" id="install-label" data-i18n="installLabel">在終端機貼上這一行安裝：</p>
@@ -53,53 +53,73 @@
     </div>
 
     <figure class="scene-wrap">
-      <pre class="scene" id="scene" tabindex="0" role="img" aria-label="示意畫面：一個 macOS 桌面上有四個視窗，被選中的視窗正在錄影。" data-i18n-attr="aria-label:sceneLabel"></pre>
+      <div class="mode" role="group" aria-label="示意模式" data-i18n-attr="aria-label:modeLabel">
+        <span aria-hidden="true">[</span><button type="button" data-mode="snap" aria-pressed="true" data-i18n="modeSnap">截圖</button><span aria-hidden="true">|</span><button type="button" data-mode="record" aria-pressed="false" data-i18n="modeRecord">錄影</button><span aria-hidden="true">]</span>
+      </div>
+      <pre class="scene" id="scene" tabindex="0" role="img" aria-label="示意畫面：一個 macOS 桌面上有四個視窗，被選中的視窗正在被定時截圖。" data-i18n-attr="aria-label:sceneLabel"></pre>
       <figcaption>
-        <p class="live-cmd"><span class="prompt">$</span> <span id="live-cmd">snapparazzi record -w 41324 --audio system</span><span class="caret" aria-hidden="true"></span></p>
+        <p class="live-cmd"><span class="prompt">$</span> <span id="live-cmd">snapparazzi -w 41324 -i 2</span><span class="caret" aria-hidden="true"></span></p>
         <p class="caption"><span id="live-target">Google Chrome — Webinar</span> · <span data-i18n="sceneHint">示意畫面，把游標移到任一個視窗上（或按方向鍵）</span></p>
       </figcaption>
     </figure>
   </section>
 
   <section class="usage" id="usage" aria-labelledby="usage-title">
-    <h2 id="usage-title" data-i18n="usageTitle">三個指令，錄好一個視窗</h2>
-    <ol class="steps">
-      <li>
-        <p class="step-text" data-i18n="step1">找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。</p>
-        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  1/3 </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi --list
+    <h2 id="usage-title" data-i18n="usageTitle">先找到視窗，再決定截圖或錄影</h2>
+    <div class="step">
+      <p class="step-text" data-i18n="step1">先找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。</p>
+      <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  --list </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi --list
 <span class="out">WINDOW_ID  APP — WINDOW / 應用程式 — 視窗
 41324      Google Chrome — Webinar
 35239      Calendar — Calendar
 46635      Terminal — zsh
 42133      Notes — Notes
 46504      Google Chrome — YouTube  [不在目前桌面 / not on this desktop]</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-      </li>
-      <li>
-        <p class="step-text" data-i18n="step2">開始錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。</p>
-        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  2/3 </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi record -w 41324 --audio system
-<span class="out">錄影中，按 Ctrl-C 停止 / Recording… press Ctrl-C to stop.</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-      </li>
-      <li>
-        <p class="step-text" data-i18n="step3">按 Ctrl-C 停止。看到「錄影完成」，影片就存好了。</p>
-        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  3/3 </span><i></i><span>+</span></div><pre class="term"><span class="prompt">^C</span>
+    </div>
+    <div class="tracks">
+      <div class="track">
+        <h3 data-i18n="trackSnap">定時截圖</h3>
+        <p class="step-text" data-i18n="snapText">每 2 秒存一張 JPG，直到按 Ctrl-C。適合記錄自動化流程或長時間執行的工作，事後一張張回頭看。</p>
+        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  screenshots </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi -w 41324 -i 2
+<span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
+間隔 / interval: 2 seconds
+格式 / format: jpg
+輸出 / output: ~/Snapparazzi/captures/20261031-101530-4821
+按 Ctrl-C 停止 / Press Ctrl-C to stop.
+✓ Google Chrome_20261031-101530_000001.jpg
+✓ Google Chrome_20261031-101530_000002.jpg
+✓ Google Chrome_20261031-101530_000003.jpg</span>
+<span class="prompt">^C</span>
+<span class="out">Snapparazzi 已停止 / stopped.
+  成功 / succeeded: 3
+  失敗 / failed: 0</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
+      </div>
+      <div class="track">
+        <h3 data-i18n="trackRecord">錄成影片</h3>
+        <p class="step-text" data-i18n="recordText">需要看到動作和聲音時再錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。</p>
+        <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- zsh  record </span><i></i><span>+</span></div><pre class="term"><span class="prompt">$</span> snapparazzi record -w 41324 --audio system
+<span class="out">已選擇 / selected: Google Chrome — Webinar (ID: 41324)
+音訊 / audio: system
+錄影中，按 Ctrl-C 停止 / Recording… press Ctrl-C to stop.</span>
+<span class="prompt">^C</span>
 <span class="out">正在停止 / Stopping…
 
 Snapparazzi 錄影完成 / recording saved.
   檔案 / file: ~/Snapparazzi/recordings/20261031-101530-4821.mp4 (12.4 MiB)</span></pre><div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
-      </li>
-    </ol>
-    <p class="note" data-i18n-html="usageNote">只要截圖：<code>snapparazzi -w 41324 -i 2</code>，每 2 秒存一張 JPG。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。</p>
+      </div>
+    </div>
+    <p class="note" data-i18n-html="usageNote">只輸入 <code>snapparazzi</code> 會列出視窗讓你挑，再問截圖間隔。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。</p>
   </section>
 
   <section class="features" id="features" aria-labelledby="features-title">
     <h2 id="features-title" data-i18n="featuresTitle">它會做的事</h2>
-    <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- snapparazzi record --help </span><i></i><span>+</span></div>
+    <div class="panel"><div class="trule head" aria-hidden="true"><span>+-- snapparazzi --help </span><i></i><span>+</span></div>
     <dl class="spec">
+      <div><dt data-i18n="fShots">定時截圖</dt><dd data-i18n-html="fShotsD">每 0.5 秒以上一張，存成 JPG、HEIC（最省空間）或 PNG；<code>-m 1280</code> 把最長邊縮到 1280 像素，長時間拍攝也不佔空間。</dd></div>
       <div><dt data-i18n="fRecord">錄成 MP4</dt><dd data-i18n-html="fRecordD">H.264 或 HEVC，1–60 fps。用 <code>--duration</code> 指定秒數，時間到自動停止。</dd></div>
-      <div><dt data-i18n="fAudio">聲音</dt><dd data-i18n-html="fAudioD"><code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。</dd></div>
-      <div><dt data-i18n="fShots">定時截圖</dt><dd data-i18n-html="fShotsD">每 0.5 秒以上一張，存成 JPG、HEIC 或 PNG；<code>-m 1280</code> 限制最長邊。</dd></div>
-      <div><dt data-i18n="fSpaces">別的桌面與全螢幕</dt><dd data-i18n="fSpacesD">視窗在其他桌面或全螢幕也能直接錄；全螢幕的 Chrome 會填滿整個畫面。</dd></div>
-      <div><dt data-i18n="fStop">停止</dt><dd data-i18n="fStopD">按 Ctrl-C 乾淨停止並顯示摘要；視窗關閉時也會停止並保留已錄的內容。</dd></div>
+      <div><dt data-i18n="fAudio">錄影的聲音</dt><dd data-i18n-html="fAudioD"><code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。</dd></div>
+      <div><dt data-i18n="fSpaces">別的桌面與全螢幕</dt><dd data-i18n="fSpacesD">錄影可以直接錄其他桌面或全螢幕的視窗，全螢幕的 Chrome 也會填滿畫面；截圖則會等視窗回到目前桌面才繼續。</dd></div>
+      <div><dt data-i18n="fStop">停止</dt><dd data-i18n="fStopD">按 Ctrl-C 乾淨停止並顯示摘要：截圖會列出成功幾張，錄影會把 MP4 寫好；視窗關閉時錄影也會停止並保留已錄的內容。</dd></div>
       <div><dt data-i18n="fUpdate">更新</dt><dd data-i18n-html="fUpdateD"><code>snapparazzi update</code> 查詢並安裝最新版本，<code>--check</code> 只查詢。</dd></div>
     </dl>
     <div class="trule" aria-hidden="true"><span>+</span><i></i><span>+</span></div></div>
@@ -109,6 +129,7 @@ Snapparazzi 錄影完成 / recording saved.
     <h2 id="limits-title" data-i18n="limitsTitle">開始前先知道</h2>
     <div class="panel narrow"><div class="trule head" aria-hidden="true"><span>+-- caveats </span><i></i><span>+</span></div>
     <ul class="spec-list">
+      <li data-i18n="l0">截圖只能拍目前桌面上的視窗：視窗最小化或在別的桌面時會暫停，回來後自動繼續。</li>
       <li data-i18n="l1">第一次執行時，到「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」允許你用的終端機 App；錄麥克風還要允許「麥克風」。</li>
       <li data-i18n="l2">system 聲音是整個 App 的：同一個瀏覽器的其他分頁也會被錄進去。</li>
       <li data-i18n-html="l3">Chrome 的視窗不在畫面上時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域會是黑的。要在背景錄，先完全結束 Chrome，再用這行開啟：<code>open -a "Google Chrome" --args --disable-backgrounding-occluded-windows</code></li>
@@ -119,7 +140,7 @@ Snapparazzi 錄影完成 / recording saved.
   </section>
 
   <section class="close" aria-labelledby="close-title">
-    <h2 class="glyph-source" id="close-title" data-i18n="closeTitle" data-glyph="close" data-fit="lines">錄完按 Ctrl-C。</h2>
+    <h2 class="glyph-source" id="close-title" data-i18n="closeTitle" data-glyph="close" data-fit="lines">拍完按 Ctrl-C。</h2>
     <pre class="glyph" id="glyph-close" aria-hidden="true"></pre>
     <div class="panel close-panel">
       <div class="trule head" aria-hidden="true"><span>+-- install.sh </span><i></i><span>+</span></div>

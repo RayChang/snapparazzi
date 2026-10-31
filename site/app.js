@@ -7,67 +7,75 @@
   // ---------------------------------------------------------------- i18n
   const STRINGS = {
     zh: {
-      pageTitle: "Snapparazzi — 只錄一個 macOS 視窗",
+      pageTitle: "Snapparazzi — 定時截圖或錄影，只對準一個 macOS 視窗",
       skip: "跳到內容",
       navLabel: "頁面區段",
       navUsage: "用法", navFeatures: "功能", navLimits: "注意事項",
-      heroTitle: "只錄一個視窗。",
-      heroLede: "原生的 macOS 指令列工具。把一個 App 視窗定時截圖，或錄成 MP4，連同那個 App 的聲音；其他視窗和其他 App 的聲音都不會錄進去。",
+      heroTitle: "只對準​一個視窗。",
+      heroLede: "原生的 macOS 指令列工具。每隔幾秒替一個 App 視窗截一張圖，把自動化流程跑過的每一步留下來，比錄影省空間得多。需要影片時，也能錄成 MP4，連同那個 App 的聲音。",
       installLabel: "在終端機貼上這一行安裝：",
       copy: "[ 複製 ]", copied: "[ 已複製 ]",
       copiedStatus: "已複製安裝指令，貼到終端機執行即可。",
       copyFailed: "無法自動複製，指令已選取，請按 ⌘C。",
       installNote: "需要 macOS 14 以上（錄影需要 15）與 Xcode Command Line Tools。安裝程式會在你的 Mac 上編譯原始碼，裝到 ~/.local/bin。",
-      sceneLabel: "示意畫面：一個 macOS 桌面上有四個視窗，被選中的視窗正在錄影。",
+      sceneLabel: "示意畫面：一個 macOS 桌面上有四個視窗，被選中的視窗正在被定時截圖或錄影。",
+      modeLabel: "示意模式", modeSnap: "截圖", modeRecord: "錄影",
       sceneHint: "示意畫面，把游標移到任一個視窗上（或按方向鍵）",
-      usageTitle: "三個指令，錄好一個視窗",
-      step1: "找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。",
-      step2: "開始錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。",
-      step3: "按 Ctrl-C 停止。看到「錄影完成」，影片就存好了。",
-      usageNote: "只要截圖：<code>snapparazzi -w 41324 -i 2</code>，每 2 秒存一張 JPG。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。",
+      usageTitle: "先找到視窗，再決定截圖或錄影",
+      step1: "先找到視窗的 ID。其他桌面或全螢幕的視窗也會列出來。",
+      trackSnap: "定時截圖",
+      snapText: "每 2 秒存一張 JPG，直到按 Ctrl-C。適合記錄自動化流程或長時間執行的工作，事後一張張回頭看。",
+      trackRecord: "錄成影片",
+      recordText: "需要看到動作和聲音時再錄。--audio system 錄這個 App 的聲音，mic 錄麥克風，both 兩個都錄。",
+      usageNote: "只輸入 <code>snapparazzi</code> 會列出視窗讓你挑，再問截圖間隔。全部選項請看 <code>snapparazzi --help</code> 與 <code>snapparazzi record --help</code>。",
       featuresTitle: "它會做的事",
       fRecord: "錄成 MP4", fRecordD: "H.264 或 HEVC，1–60 fps。用 <code>--duration</code> 指定秒數，時間到自動停止。",
-      fAudio: "聲音", fAudioD: "<code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。",
-      fShots: "定時截圖", fShotsD: "每 0.5 秒以上一張，存成 JPG、HEIC 或 PNG；<code>-m 1280</code> 限制最長邊。",
-      fSpaces: "別的桌面與全螢幕", fSpacesD: "視窗在其他桌面或全螢幕也能直接錄；全螢幕的 Chrome 會填滿整個畫面。",
-      fStop: "停止", fStopD: "按 Ctrl-C 乾淨停止並顯示摘要；視窗關閉時也會停止並保留已錄的內容。",
+      fAudio: "錄影的聲音", fAudioD: "<code>--audio none | system | mic | both</code>。system 只錄這個 App 的聲音，其他 App 的通知聲不會進來；both 會混成一條音軌。",
+      fShots: "定時截圖", fShotsD: "每 0.5 秒以上一張，存成 JPG、HEIC（最省空間）或 PNG；<code>-m 1280</code> 把最長邊縮到 1280 像素，長時間拍攝也不佔空間。",
+      fSpaces: "別的桌面與全螢幕", fSpacesD: "錄影可以直接錄其他桌面或全螢幕的視窗，全螢幕的 Chrome 也會填滿畫面；截圖則會等視窗回到目前桌面才繼續。",
+      fStop: "停止", fStopD: "按 Ctrl-C 乾淨停止並顯示摘要：截圖會列出成功幾張，錄影會把 MP4 寫好；視窗關閉時錄影也會停止並保留已錄的內容。",
       fUpdate: "更新", fUpdateD: "<code>snapparazzi update</code> 查詢並安裝最新版本，<code>--check</code> 只查詢。",
       limitsTitle: "開始前先知道",
+      l0: "截圖只能拍目前桌面上的視窗：視窗最小化或在別的桌面時會暫停，回來後自動繼續。",
       l1: "第一次執行時，到「系統設定 → 隱私權與安全性 → 螢幕與系統錄音」允許你用的終端機 App；錄麥克風還要允許「麥克風」。",
       l2: "system 聲音是整個 App 的：同一個瀏覽器的其他分頁也會被錄進去。",
       l3: "Chrome 的視窗不在畫面上時（切到別的桌面）會停止繪製網頁影片，錄到的影片區域會是黑的。要在背景錄，先完全結束 Chrome，再用這行開啟：<code>open -a \"Google Chrome\" --args --disable-backgrounding-occluded-windows</code>",
       l4: "受 DRM 保護的內容可能錄不到畫面或聲音。",
       l5: "一個程序只處理一個視窗。要同時錄好幾個，就開好幾個終端機分頁。",
-      closeTitle: "錄完按 Ctrl-C。",
+      closeTitle: "拍完按 Ctrl-C。",
       tagline: "專業地打擾你的視窗。"
     },
     en: {
-      pageTitle: "Snapparazzi — record one macOS window",
+      pageTitle: "Snapparazzi — screenshot or record one macOS window",
       skip: "Skip to content",
       navLabel: "Sections",
       navUsage: "Usage", navFeatures: "Features", navLimits: "Limits",
       heroTitle: "One window.",
-      heroLede: "A native macOS command-line tool. Screenshot one app window on an interval, or record it to MP4 with that app's sound. Other windows, and other apps' sounds, stay out.",
+      heroLede: "A native macOS command-line tool. It screenshots one app window every few seconds, so an automated run leaves a record of every step, in far less space than video. When you need video, it records the window to MP4 with that app's sound.",
       installLabel: "Paste this line into Terminal to install:",
       copy: "[ COPY ]", copied: "[ COPIED ]",
       copiedStatus: "Install command copied. Paste it into Terminal and press Return.",
       copyFailed: "Could not copy automatically. The command is selected; press ⌘C.",
       installNote: "Needs macOS 14 or later (15 for recording) and the Xcode Command Line Tools. The installer builds from source on your Mac and installs to ~/.local/bin.",
-      sceneLabel: "Illustration: a macOS desktop with four windows; the selected window is being recorded.",
+      sceneLabel: "Illustration: a macOS desktop with four windows; the selected window is being screenshotted or recorded.",
+      modeLabel: "Illustration mode", modeSnap: "SNAP", modeRecord: "RECORD",
       sceneHint: "Illustration. Point at any window (or use the arrow keys)",
-      usageTitle: "Three commands to a recording",
-      step1: "Find the window's ID. Windows on other desktops or in full screen are listed too.",
-      step2: "Start recording. --audio system records that app's sound, mic the microphone, both records both.",
-      step3: "Press Ctrl-C to stop. When you see \"recording saved\", the video is written.",
-      usageNote: "Screenshots only: <code>snapparazzi -w 41324 -i 2</code> saves a JPG every 2 seconds. Every option is in <code>snapparazzi --help</code> and <code>snapparazzi record --help</code>.",
+      usageTitle: "Find the window, then screenshot or record it",
+      step1: "First find the window's ID. Windows on other desktops or in full screen are listed too.",
+      trackSnap: "Timed screenshots",
+      snapText: "Saves a JPG every 2 seconds until you press Ctrl-C. Made for keeping a record of an automated run or a long job, to look back through one frame at a time.",
+      trackRecord: "Record a video",
+      recordText: "Record when you need the motion and the sound. --audio system records that app's sound, mic the microphone, both records both.",
+      usageNote: "Run just <code>snapparazzi</code> to pick a window from a list and be asked for the interval. Every option is in <code>snapparazzi --help</code> and <code>snapparazzi record --help</code>.",
       featuresTitle: "What it does",
       fRecord: "Record to MP4", fRecordD: "H.264 or HEVC at 1–60 fps. <code>--duration</code> stops after that many seconds.",
-      fAudio: "Sound", fAudioD: "<code>--audio none | system | mic | both</code>. system records only that app, so other apps' alerts stay out; both mixes into one track.",
-      fShots: "Timed screenshots", fShotsD: "One every 0.5 s or more, as JPG, HEIC or PNG; <code>-m 1280</code> limits the longest edge.",
-      fSpaces: "Other desktops, full screen", fSpacesD: "Windows on another desktop or in full screen record directly; full-screen Chrome fills the whole frame.",
-      fStop: "Stopping", fStopD: "Ctrl-C stops cleanly and prints a summary; a closed window stops too and keeps what was recorded.",
+      fAudio: "Sound in recordings", fAudioD: "<code>--audio none | system | mic | both</code>. system records only that app, so other apps' alerts stay out; both mixes into one track.",
+      fShots: "Timed screenshots", fShotsD: "One every 0.5 s or more, as JPG, HEIC (smallest) or PNG; <code>-m 1280</code> limits the longest edge to 1280 px, so long sessions stay small.",
+      fSpaces: "Other desktops, full screen", fSpacesD: "Recording works on windows on another desktop or in full screen, and full-screen Chrome fills the frame; screenshots wait until the window is back on the current desktop.",
+      fStop: "Stopping", fStopD: "Ctrl-C stops cleanly and prints a summary: how many screenshots were saved, or the finished MP4. A closed window also stops a recording and keeps what was recorded.",
       fUpdate: "Updating", fUpdateD: "<code>snapparazzi update</code> checks for and installs the latest release; <code>--check</code> only checks.",
       limitsTitle: "Before you start",
+      l0: "Screenshots only capture a window on the current desktop: while it is minimized or on another desktop, capture pauses and resumes when it is back.",
       l1: "On first run, allow your terminal app under System Settings → Privacy & Security → Screen & System Audio Recording, and Microphone too for mic recording.",
       l2: "system sound is the whole app: other tabs of the same browser are recorded too.",
       l3: "Chrome stops drawing web video while its window is not visible (on another desktop), so that part records black. To record in the background, quit Chrome and reopen it with: <code>open -a \"Google Chrome\" --args --disable-backgrounding-occluded-windows</code>",
@@ -234,6 +242,8 @@
   }
 
   function splitLines(text) {
+    // A zero-width space in the copy marks where the line breaks.
+    if (text.includes("\u200b")) return text.split("\u200b").filter(Boolean);
     // Mixed Chinese and Latin ("錄完按 Ctrl-C。"): break where the Latin run starts.
     const mixed = text.match(/^([㐀-鿿]+)\s*([A-Za-z].*)$/);
     if (mixed) return [mixed[1], mixed[2]];
@@ -309,7 +319,24 @@
     { id: 42133, app: "Notes", title: "Notes", x: .06, y: .64, w: .32, h: .30, kind: "notes" }
   ];
   let target = WINDOWS[0];
+  let mode = "snap";                   // "snap" (timed screenshots, the default) or "record"
   let recStart = performance.now();
+  let runStamp = stampOf(new Date());  // the run's timestamp, as in the CLI's file names
+  let lastShot = 0;
+  const SHOT_MS = 2000;                // -i 2
+
+  function stampOf(d) {
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  }
+  function commandFor(w) {
+    return mode === "snap" ? `snapparazzi -w ${w.id} -i 2` : `snapparazzi record -w ${w.id} --audio system`;
+  }
+  function captionFor(w, shot) {
+    return mode === "snap"
+      ? `✓ ${w.app}_${runStamp}_${String(shot).padStart(6, "0")}.jpg`
+      : `${w.app} — ${w.title}`;
+  }
   let geo = null;     // window rectangles in cells
   let cols = 0, rows = 0, cell = null;
 
@@ -458,10 +485,25 @@
         text(R - 2, T, "--+"); put(R, T + 1, "|");
         text(L, B, "+--"); put(L, B - 1, "|");
         text(R - 2, B, "--+"); put(R, B - 1, "|");
-        const secs = Math.floor((now - recStart) / 1000);
-        const stamp = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
-        const on = reduceMotion || Math.floor(t * 2) % 2 === 0;
-        const label = `${on ? " REC " : "     "} ${stamp} `;
+        const elapsed = now - recStart;
+        let label, on;
+        if (mode === "snap") {
+          // One shot per interval; the window flashes like a shutter as each lands.
+          const shot = 1 + Math.floor(elapsed / SHOT_MS);
+          if (!reduceMotion && elapsed % SHOT_MS < 140) {
+            for (let yy = y; yy < y + ch; yy++) for (let xx = x; xx < x + cw; xx++) {
+              if (xx >= 0 && yy >= 0 && xx < cols && yy < rows) inv[yy][xx] = 1;
+            }
+          }
+          if (shot !== lastShot) { lastShot = shot; liveTarget.textContent = captionFor(g.w, shot); }
+          on = true;
+          label = ` SNAP #${String(shot).padStart(4, "0")} `;
+        } else {
+          const secs = Math.floor(elapsed / 1000);
+          const clock = `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
+          on = reduceMotion || Math.floor(t * 2) % 2 === 0;
+          label = `${on ? " REC " : "     "} ${clock} `;
+        }
         text(R - label.length - 3, T, label, on);
         const idLabel = ` -w ${g.w.id} `;
         text(L + 4, B, idLabel, true);
@@ -490,23 +532,43 @@
 
   // Retype the command when the target changes.
   let typeTimer = 0;
-  function retarget(next) {
-    if (next === target) return;
-    target = next;
-    recStart = performance.now();
-    liveTarget.textContent = `${next.app} — ${next.title}`;
-    const full = `snapparazzi record -w ${next.id} --audio system`;
+  // Retype the command from where it stops matching, like editing a shell line.
+  function typeCommand(full) {
     clearInterval(typeTimer);
-    if (reduceMotion) { liveCmd.textContent = full; paintOnce(); return; }
-    const keep = "snapparazzi record -w ";
-    let i = keep.length;
-    liveCmd.textContent = keep;
+    const current = liveCmd.textContent;
+    if (reduceMotion) { liveCmd.textContent = full; return; }
+    let i = 0;
+    while (i < current.length && i < full.length && current[i] === full[i]) i++;
+    liveCmd.textContent = full.slice(0, i);
     typeTimer = setInterval(() => {
       i++;
       liveCmd.textContent = full.slice(0, i);
       if (i >= full.length) clearInterval(typeTimer);
     }, 28);
   }
+
+  function restartRun() {
+    recStart = performance.now();
+    runStamp = stampOf(new Date());
+    lastShot = 0;
+    liveTarget.textContent = captionFor(target, 1);
+    typeCommand(commandFor(target));
+    if (reduceMotion) paintOnce();
+  }
+
+  function retarget(next) {
+    if (next === target) return;
+    target = next;
+    restartRun();
+  }
+
+  const modeButtons = [...document.querySelectorAll(".mode button")];
+  modeButtons.forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.mode === mode) return;
+    mode = b.dataset.mode;
+    modeButtons.forEach((m) => m.setAttribute("aria-pressed", String(m.dataset.mode === mode)));
+    restartRun();
+  }));
 
   function windowAtCell(cx, cy) {
     // Topmost first: the target is on top, then the reverse draw order.

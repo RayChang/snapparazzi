@@ -95,6 +95,10 @@
         "displayName": "Headline",
         "purpose": "Section titles with a Dim Amber '> ' prompt; max 28ch."
       },
+      "subhead": {
+        "displayName": "Subhead",
+        "purpose": "The two capture tracks under Usage (screenshots, then recording), 700 at 18px, prefixed with a Dim Amber '# '."
+      },
       "lede": {
         "displayName": "Lede",
         "purpose": "Hero copy, max 46ch."

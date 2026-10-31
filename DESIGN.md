@@ -20,6 +20,11 @@ typography:
     fontWeight: 700
     lineHeight: 1.25
     letterSpacing: "-0.01em"
+  subhead:
+    fontFamily: "Martian Mono, ui-monospace, Menlo, monospace, PingFang TC, Noto Sans TC, Heiti TC, sans-serif"
+    fontSize: "18px"
+    fontWeight: 700
+    lineHeight: 1.3
   lede:
     fontFamily: "Martian Mono, ui-monospace, Menlo, monospace, PingFang TC, Noto Sans TC, Heiti TC, sans-serif"
     fontSize: "16px"
@@ -141,6 +146,7 @@ A single amber phosphor ink at three strengths on a warm near-black; no other hu
 ### Hierarchy
 - **Glyph display** (rendered at 7px / 5px under 600px, line-height 1): the hero headline and the closing line. Text is drawn at weight 800 into a canvas, sampled per cell, and printed as a three-level fill: `@` for solid interior (≥0.7), `%` for edges, space below the cutoff (0.25 for CJK, 0.35 for Latin, which is uppercased). The real heading stays in the DOM, visually hidden, as the accessible source.
 - **Headline** (700, clamp(22px, 2.4vw, 32px), 1.25, max 28ch, balanced): section titles, always prefixed with a Dim Amber `> ` prompt.
+- **Subhead** (700, 18px, 1.3): the two capture tracks under Usage (screenshots, then recording), prefixed with a Dim Amber `# `.
 - **Lede** (400, 16px, 1.7, max 46ch): the hero's two lines of copy.
 - **Body** (400, 15px / 14px under 600px, 1.7): running text; descriptions max 42–70ch.
 - **Code** (400, 13px, 1.6, tabular numerals): command rows and terminal blocks. Inline code in prose is 700 weight in Phosphor Amber.
@@ -180,6 +186,10 @@ No radius anywhere; every edge is square because it is a cell edge. Containers a
 ### Language Toggle
 - **Style:** `[中|EN]` with Dim Amber brackets and bar; buttons are transparent amber text, 1ch padding.
 - **State:** the pressed language is an inverse cell; the other shows a 14% amber wash on hover (250ms ease-out). Choice persists in localStorage; first visit follows the browser language.
+
+### Scene Mode Switch
+- **Style:** the same typed control as the language toggle, `[截圖|錄影]` / `[SNAP|RECORD]`, 13px uppercase labels, set above the scene.
+- **State:** screenshots are the default and come first, as the product's primary use. In SNAP the viewfinder label reads `SNAP #0003`, the recorded window flashes inverse for 140 ms on every 2 s shot (the shutter, skipped under reduced motion), the command becomes `snapparazzi -w <id> -i 2`, and the caption shows the latest file name in the CLI's own format. In RECORD the label is the blinking `REC mm:ss` and the command is `snapparazzi record -w <id> --audio system`. Switching mode or window restarts the run and retypes the command from where it differs.
 
 ### Navigation
 - **Style:** uppercase 13px labels at 0.08em, each in Amber Trace brackets that turn Phosphor Amber on hover.
