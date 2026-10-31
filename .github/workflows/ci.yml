@@ -26,6 +26,7 @@ jobs:
           /bin/zsh -n tests/run-tests.sh
           /bin/zsh -n tests/record-cli-tests.sh
           /bin/zsh -n tests/install-tests.sh
+          /bin/zsh -n tests/update-tests.sh
           /bin/zsh -n tests/recording-acceptance.sh
           /bin/zsh -n tests/recording-long-run.sh
           /bin/zsh -n tests/recording-microphone.sh

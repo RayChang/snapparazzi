@@ -22,6 +22,10 @@ private func testArgumentDescription(_ action: CLIAction) -> String {
         let output = options.outputPath ?? "default"
         let maxDimension = options.maxDimension.map(String.init) ?? "nil"
         return "mode=record;window=\(window);audio=\(options.audio.rawValue);fps=\(options.fps);codec=\(options.codec.rawValue);duration=\(duration);output=\(output);maxDimension=\(maxDimension)"
+    case .updateHelp:
+        return "mode=update-help"
+    case .update(let checkOnly):
+        return "mode=update;check=\(checkOnly)"
     }
 }
 
@@ -76,6 +80,22 @@ func runTestCommand(arguments: [String]) -> Never {
         } catch {
             exit(2)
         }
+    case "command-line":
+        do {
+            print(testArgumentDescription(try parseCommandLine(Array(arguments.dropFirst(3)))))
+        } catch let error as CLIUsageError {
+            print("ERROR: \(error.message)")
+            exit(2)
+        } catch {
+            exit(2)
+        }
+    case "version-newer":
+        guard arguments.count == 5 else { exit(2) }
+        guard let candidate = parsedVersion(arguments[3]), let current = parsedVersion(arguments[4]) else {
+            print("INVALID")
+            exit(0)
+        }
+        print(isNewerVersion(candidate, than: current) ? "NEWER" : "NOT-NEWER")
     case "capture-arguments":
         guard arguments.count == 6,
               let windowID = parseWindowID(arguments[3]),

@@ -142,8 +142,25 @@ func parseCommandLine(_ arguments: [String]) throws -> CLIAction {
     switch arguments.first {
     case "capture": return try parseArguments(Array(arguments.dropFirst()))
     case "record": return try parseRecordingArguments(Array(arguments.dropFirst()))
+    case "update": return try parseUpdateArguments(Array(arguments.dropFirst()))
     default: return try parseArguments(arguments)
     }
+}
+
+func parseUpdateArguments(_ arguments: [String]) throws -> CLIAction {
+    var checkOnly = false
+    for argument in arguments {
+        switch argument {
+        case "-h", "--help":
+            return .updateHelp
+        case "--check":
+            guard !checkOnly else { throw CLIUsageError(message: "選項重複 / Duplicate option: --check") }
+            checkOnly = true
+        default:
+            throw CLIUsageError(message: "update 不支援此選項 / Not supported by update: \(argument)")
+        }
+    }
+    return .update(checkOnly: checkOnly)
 }
 
 private let recordingMinimumFPS = 1

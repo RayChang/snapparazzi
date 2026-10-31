@@ -60,6 +60,8 @@ enum CLIAction {
     case run(CLIOptions)
     case recordingHelp
     case record(RecordingOptions)
+    case updateHelp
+    case update(checkOnly: Bool)
 }
 
 struct CLIUsageError: Error {

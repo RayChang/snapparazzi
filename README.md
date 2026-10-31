@@ -28,9 +28,9 @@ Download the source, build it locally, and install it to `~/.local/bin/snapparaz
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh | sh
 ```
 
-重新執行同一命令即可更新。安裝程式會下載指定版本的完整原始碼壓縮檔，以同一份 Makefile 在本機編譯；失敗時不會動到已安裝的版本。安裝特定 tag／分支／commit 或自訂 bin 目錄：
+更新：執行 `snapparazzi update`（1.3.1 起；`--check` 只查詢不安裝），它會查詢最新 Release，有新版時以同一套安裝程式在本機編譯並取代原位置的 snapparazzi。1.3.0 及更早的版本請重新執行上面的命令。安裝程式會下載指定版本的完整原始碼壓縮檔，以同一份 Makefile 在本機編譯；失敗時不會動到已安裝的版本。安裝特定 tag／分支／commit 或自訂 bin 目錄：
 
-Run the same command again to update. The installer downloads the full source archive for one ref and builds it with the same Makefile; a failed install leaves the installed version untouched. To install a specific tag, branch or commit, or choose another bin directory:
+To update, run `snapparazzi update` (1.3.1 or later; `--check` only checks): it looks up the latest release and, if it is newer, builds it with the same installer and replaces snapparazzi where it is installed. On 1.3.0 or earlier, run the command above again. The installer downloads the full source archive for one ref and builds it with the same Makefile; a failed install leaves the installed version untouched. To install a specific tag, branch or commit, or choose another bin directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/RayChang/snapparazzi/main/install.sh \
@@ -58,6 +58,7 @@ snapparazzi record -w 12345 --audio both -o ~/Movies/demo.mp4
 
 snapparazzi --help
 snapparazzi record --help
+snapparazzi update                  # 更新到最新版 / update to the latest release
 ```
 
 若想同時截取或錄製多個視窗，請開啟多個 Terminal 分頁，每個程序選一個視窗。
@@ -182,7 +183,7 @@ make test
 make install
 ```
 
-`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, and the installer in an isolated temporary destination. CI runs it on the latest macOS, and again with the newest Xcode 16 on macOS 15, where it also compiles for a macOS 14 deployment target so every macOS 15 API stays behind an availability check. (Running on macOS 14 itself, where `record` refuses, was verified before GitHub retired its macOS 14 runners.)
+`make test` compiles a release binary with warnings treated as errors and runs every suite that needs no permissions or windows: the screenshot CLI contract, record argument parsing, recording tests that drive the timeline, writer and mixer with synthetic frames and tones through real AVFoundation, the installer in an isolated temporary destination, and `snapparazzi update` against a local fake release and installer. CI runs it on the latest macOS, and again with the newest Xcode 16 on macOS 15, where it also compiles for a macOS 14 deployment target so every macOS 15 API stays behind an availability check. (Running on macOS 14 itself, where `record` refuses, was verified before GitHub retired its macOS 14 runners.)
 
 Real recordings are opt-in because they need Screen Recording/Microphone permission and a logged-in desktop:
 
