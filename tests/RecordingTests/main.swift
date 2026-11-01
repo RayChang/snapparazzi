@@ -312,6 +312,49 @@ cases.append(("window crop: full-screen Chrome's extra toolbar area is cut, noth
           "a zero scale gives no size")
 }))
 
+cases.append(("window crop: full-screen Chrome on a 1x external display is found among its app's windows", {
+    // Measured: Chrome full screen on a 2560×1440 pt display left of a 1728×1117 pt
+    // Retina display. SCK reported contentRect 2560×760.5 at contentScale 0.5.
+    let captured = capturedContentSize(contentRect: CGRect(x: 0, y: 0, width: 2560, height: 760.5), contentScale: 0.5)!
+    near(Double(captured.width), 5120, 0.5, "captured width")
+    near(Double(captured.height), 1521, 0.5, "captured height")
+    let window = CGRect(x: -2560, y: -652, width: 2560, height: 1440)
+    // Every other Chrome window the window server listed, on all desktops.
+    let chrome: [CGRect] = [
+        CGRect(x: -2550, y: -678, width: 66, height: 20), CGRect(x: -1513, y: -607, width: 465, height: 50),
+        CGRect(x: -2461, y: -748, width: 2362, height: 138), CGRect(x: -2461, y: -748, width: 2362, height: 139),
+        CGRect(x: -2560, y: -652, width: 2560, height: 30), CGRect(x: 1728, y: -1005, width: 1440, height: 30),
+        CGRect(x: 1313, y: 170, width: 375, height: 195), CGRect(x: 0, y: 0, width: 1, height: 1),
+        CGRect(x: 135, y: 58, width: 1152, height: 139), CGRect(x: 1634, y: 1018, width: 84, height: 77),
+        CGRect(x: 0, y: 0, width: 1728, height: 33), CGRect(x: 496, y: 570, width: 249, height: 19),
+        CGRect(x: 135, y: 58, width: 1152, height: 378), CGRect(x: 1, y: 33, width: 1728, height: 1084),
+        CGRect(x: 0, y: -693, width: 2560, height: 41), CGRect(x: -2560, y: -733, width: 2560, height: 81),
+        CGRect(x: -2560, y: -622, width: 2560, height: 1410), CGRect(x: 135, y: 58, width: 1152, height: 538),
+        CGRect(x: 0, y: 33, width: 1728, height: 1084), CGRect(x: -2425, y: -597, width: 1984, height: 139),
+        CGRect(x: -2560, y: -652, width: 2560, height: 149), CGRect(x: -2425, y: -597, width: 1984, height: 89),
+    ]
+    let geometry = WindowGeometry(frame: window, appWindows: chrome)
+    let crop = windowCrop(captured: captured, geometry: geometry)
+    check(crop == CGRect(x: 0, y: 81, width: 2560, height: 1440), "keep the window, bottom left of the box: \(String(describing: crop))")
+    check(windowCrop(captured: captured, frame: window.size) == nil, "the toolbar rule alone does not apply here")
+
+    // Without the helper windows the box cannot be explained: no crop.
+    check(windowCrop(captured: captured, geometry: WindowGeometry(frame: window, appWindows: [])) == nil,
+          "no helper windows, no crop")
+    // After leaving full screen the capture is the window again: nothing to cut.
+    let windowed = WindowGeometry(frame: CGRect(x: -2560, y: -622, width: 2560, height: 1318), appWindows: chrome)
+    check(windowCrop(captured: CGSize(width: 2560, height: 1318), geometry: windowed) == nil, "a plain window is not cropped")
+    // The Retina toolbar case still goes through the toolbar rule.
+    let retina = WindowGeometry(frame: CGRect(x: 0, y: 33, width: 1728, height: 1084), appWindows: [])
+    check(windowCrop(captured: CGSize(width: 1728, height: 1230), geometry: retina) == CGRect(x: 0, y: 146, width: 1728, height: 1084),
+          "toolbar hidden on the Retina display is cropped as before")
+    check(windowCrop(captured: CGSize(width: 1728, height: 1084), geometry: retina) == nil, "a normal window is not cropped")
+    // Two boxes that fit equally well: no crop rather than a guess.
+    let twoWays = WindowGeometry(frame: CGRect(x: 100, y: 100, width: 100, height: 100),
+                                 appWindows: [CGRect(x: 0, y: 100, width: 100, height: 100), CGRect(x: 200, y: 100, width: 100, height: 100)])
+    check(windowCrop(captured: CGSize(width: 200, height: 100), geometry: twoWays) == nil, "an ambiguous box is not cropped")
+}))
+
 cases.append(("stop reasons: failures are never hidden by a normal stop", {
     check(RecordingStopReason.interrupt.merged(with: .windowClosed) == .windowClosed, "window closed outranks Ctrl-C")
     check(RecordingStopReason.windowClosed.merged(with: .terminate) == .windowClosed, "a later SIGTERM keeps the failure")
