@@ -46,6 +46,11 @@ test_root="$(mktemp -d)"
 trap 'rm -rf "$test_root"' EXIT
 installer_tmp="${test_root}/tmp"
 mkdir -p "$installer_tmp"
+# The installer edits the shell rc file in $HOME, so give it a throwaway home.
+fake_home="${test_root}/home"
+mkdir -p "$fake_home"
+fake_rc="${fake_home}/.zshrc"
+real_rc_before="$(cksum "${HOME}/.zshrc" 2>/dev/null)"
 curl_log="${test_root}/curl-url"
 installer_output=""
 installer_status=0
@@ -73,6 +78,8 @@ run_installer() {
   rm -f "$curl_log"
   installer_output="$(
     env PATH="${project_dir}/tests/fixtures:/usr/bin:/bin:/usr/sbin:/sbin" \
+      HOME="$fake_home" \
+      SHELL=/bin/zsh \
       TMPDIR="$installer_tmp" \
       SNAPPARAZZI_BIN="$bin_dir" \
       SNAPPARAZZI_REF="$ref" \
@@ -138,6 +145,10 @@ assert_equal \
   "installer output has no codesign chatter" \
   "" \
   "$(print -r -- "$installer_output" | grep 'replacing existing signature')"
+assert_equal \
+  "installer adds the install location to PATH in the zsh rc file once" \
+  "1" \
+  "$(grep -cF "export PATH=\"${install_dir}:\$PATH\"" "$fake_rc")"
 
 # 2. Branch name with a slash, installed into a directory containing spaces.
 spaced_dir="${test_root}/dir with spaces/bin"
@@ -204,6 +215,12 @@ assert_equal \
   "installer leaves no temporary files" \
   "" \
   "$(ls -A "$installer_tmp")"
+
+# 9. Tests never touch the real shell rc file.
+assert_equal \
+  "installer tests leave the real ~/.zshrc untouched" \
+  "$real_rc_before" \
+  "$(cksum "${HOME}/.zshrc" 2>/dev/null)"
 
 if (( failures > 0 )); then
   print -u2 "${failures}/${checks} installer tests failed"
