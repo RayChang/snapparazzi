@@ -115,7 +115,7 @@ struct RecordCommand {
         }
         let filter = SCContentFilter(desktopIndependentWindow: window)
         // Measured before the real stream starts, so even the first frame is cropped.
-        let initialCrop = await measureWindowCrop(filter: filter)
+        let initialCrop = await measureWindowCrop(filter: filter, windowID: windowID)
         let scale = Double(filter.pointPixelScale)
         let sourceWidth = Double(filter.contentRect.width) * scale
         let sourceHeight = Double(filter.contentRect.height) * scale
@@ -207,7 +207,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private let microphoneID: String?
     // Cropping the capture to the window frame (see WindowCrop.swift).
     private let windowID: CGWindowID
-    private var frameSize: CGSize
+    private var geometry: WindowGeometry   // the window and its app's other windows
     private var crop: CGRect?
     private var cropFrame: CGSize?      // the frame size `crop` was computed for
     private var reconfiguring = false   // a sourceRect change is in flight
@@ -229,7 +229,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         self.signals = signals
         self.filter = filter
         self.windowID = windowID
-        frameSize = filter.contentRect.size
+        geometry = windowGeometry(windowID) ?? WindowGeometry(frame: filter.contentRect, appWindows: [])
         crop = initialCrop
         cropFrame = initialCrop == nil ? nil : filter.contentRect.size
         self.microphoneID = microphoneID
@@ -391,8 +391,8 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
                     // screen). This frame is still written: a static window may send no
                     // new frame after the change, and skipping would freeze the video.
                     if crop == nil, !reconfiguring, !cropFailed,
-                       let needed = neededWindowCrop(info, frame: frameSize) {
-                        setCrop(needed)
+                       let needed = neededWindowCrop(info, geometry: geometry) {
+                        setCrop(needed.crop, frame: needed.frame)
                     }
                     let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
                     if let end = pipeline.endpointSeconds, let at = pipeline.sessionSeconds(pts), at >= end { return }
@@ -421,21 +421,21 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     // A crop is only right for the frame size it was computed for: when the window
     // changes size (e.g. leaves full screen), drop it and measure again.
     private func checkWindowFrame() {
-        guard let size = windowFrameSize(windowID) else { return }
-        frameSize = size
+        guard let current = windowGeometry(windowID) else { return }
+        geometry = current
+        let size = current.frame.size
         if let cropFrame, crop != nil, !reconfiguring,
            abs(cropFrame.width - size.width) > 0.5 || abs(cropFrame.height - size.height) > 0.5 {
             setCrop(nil)
         }
     }
 
-    private func setCrop(_ newCrop: CGRect?) {
+    private func setCrop(_ newCrop: CGRect?, frame: CGSize? = nil) {
         guard let stream else { return }
         reconfiguring = true
         let previous = configuration.sourceRect
         configuration.sourceRect = newCrop ?? .zero // .zero captures everything
         let config = configuration
-        let frame = frameSize
         Task {
             var failed = false
             do { try await stream.updateConfiguration(config) } catch { failed = true }

@@ -39,7 +39,7 @@ It captures one window, not the whole screen, at an interval the user picks, so 
 - `system` audio is the whole app, so other tabs of the same browser can be heard.
 - Chrome stops drawing web video while its window is on another desktop. The workaround is to reopen Chrome with `--disable-backgrounding-occluded-windows`.
 - DRM-protected content may not be captured.
-- Current version: 1.3.1. MIT license (see `LICENSE`).
+- Current version: 1.3.2. MIT license (see `LICENSE`).
 
 ## Brand Commitments
 
@@ -49,7 +49,7 @@ It captures one window, not the whole screen, at an interval the user picks, so 
 
 ## Evidence on Hand
 
-- README.md, the CLI help text (`Sources/Snapparazzi/CLI/Help.swift`), and the GitHub releases (v1.1.0–v1.3.1) hold the real facts and wording.
+- README.md, the CLI help text (`Sources/Snapparazzi/CLI/Help.swift`), and the GitHub releases (v1.1.0–v1.3.2) hold the real facts and wording.
 - There are no product screenshots, demo videos, user testimonials, download counts or press. Do not invent any of them. Real terminal output, copied from the CLI's actual messages, may be shown.
 
 ## Product Principles
